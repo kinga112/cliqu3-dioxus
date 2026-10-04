@@ -1,0 +1,23 @@
+1. Fix iroh docs peer sync with NodeAddr that got removed in 1.0
+2. For Global User State: comment: should i just do option user and its none and then gets initialized when user logs in?
+3. Add Reactions queue HashMap? When pagnating messages or vitual list scrolling, if the message with the reference from the
+        reaction is not visible, add it to the HashMap (for easy lookup) then remove when rendering that message with
+        the reference id
+5. should Avatar have rounded-xl??
+6. Find a better text to use!
+7. Use virtualization / pagnating using list_messages via ListMessagesOptions
+8. Speed of opening messages with reactions doesnt feel instant. Optimize this!
+9. Maybe switch from use_context of Message ID for Reactions to use_context of a Signal Msg
+10. Find a way to sort the HashMap into most to least reacted to emojis
+11. Add spawn blocking around get_conversation?
+12. Add ability to add new members to server (recurivly add to selected/all text (XMTP) channels / also allow auth for voice channels)
+    -> create custom xmtp message type: Invite or ServerInvite... server metadata gets sent encoded.
+    -> If using cliqu3 client, cliqu3 code to decode the message and join the server.
+    -> custom component for Invite -> [Join] button on message -> click to run decode and add server to iroh docs with xmtp channels
+13. Create DMs page and then test server invites via Invite Message not ticket..
+    -> Then test subscription via the ticket in the encoded server metadata
+16. Complete UI for creating DMs.
+17. Add integration with Cliqu3 Contract, start testing this and create UI for creating/editing profile with cost estimates
+18. Should I make CURRENT_TEXT_CHANNEL state just the id of the text channel? Then whenever text channel is needed it fetches the data
+19. Allow server creation via discord template link using this api: https://discord.com/api/v10/guilds/templates/{template code} code: R2xY28n8grGZ
+20. When clicking the emoji button on a message to reaction, keep that message highlighted until clicked off

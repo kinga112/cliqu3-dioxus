@@ -1,0 +1,53 @@
+[package]
+name = "cliqu3-dioxus-test"
+version = "0.1.0"
+authors = ["Alden King <kinga112@yahoo.com>"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.9", features = [] }
+iroh = "1.0.2"
+tokio = { version = "1.47.1", features = ["full"] }
+tokio-util = "0.7.16"
+anyhow = "1.0.99"
+iroh-gossip = "0.101.0"
+data-encoding = "2.9.0"
+iroh-docs = "0.101.0"
+iroh-blobs = "0.103.0"
+uuid = { version = "1.18.0", features = ["v4"] }
+hmac = "0.12.1"
+sha2 = "0.10.9"
+url = "2.5.7"
+moka = { version = "0.12.11", features = ["sync"] }
+keyring = { version = "3.6.3", features = ["windows-native"] }
+aes-gcm = "0.11.0"
+xmtp = { version = "0.9.3", features = ["alloy"], path = "../xmtp/xmtp" }
+alloy = { version = "2.1.1", features = ["full"] }
+x25519-dalek = "2" #3.0.0?
+rand = "0.8.5"
+ring = "0.17.14"
+chacha20poly1305 = "0.11.0"
+base64 = "0.22.1"
+hkdf = "0.12.4"
+futures = { version = "0.3", features = ["executor"] }
+reown-relay-client = "0.1.0"
+reown-relay-rpc = "0.1.1"
+serde_json = "1"
+qrcode-generator = "6.0.0"
+serde = "1.0.229"
+chrono = "0.4.45"
+strum = "0.26"
+strum_macros = "0.26"
+prost = "0.14.4"
+iroh-live = { git = "https://github.com/n0-computer/iroh-live" }
+
+[features]
+default = ["desktop"]
+# The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature
+web = ["dioxus/web"]
+# The feature that are only required for the desktop = ["dioxus/desktop"] build target should be optional and only enabled in the desktop = ["dioxus/desktop"] feature
+desktop = ["dioxus/desktop"]
+# The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
+mobile = ["dioxus/mobile"]

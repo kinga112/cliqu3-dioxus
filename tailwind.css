@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@layer base {
+  @font-face {
+    font-family: Neuropol;
+    font-weight: normal;
+    font-style: normal;
+    src: url('/assets/fonts/neuropol-x-free.rg-regular.otf') format('opentype');
+  }
+}
+
+@theme {
+  --color-deep-purple-100: #9d92aa;
+  --color-deep-purple-200: #7a6a8d;
+  --color-deep-purple-300: #5f4c75;
+  --color-deep-purple-400: #48355e;
+  --color-deep-purple-500: #35204e;
+  --color-deep-purple-600: #4e3366;
+  --color-deep-purple-700: #4e2b57;
+  --color-deep-purple-800: #382449;
+  --color-deep-purple-900: #2c1d3a;
+  --color-deep-purple-950: #21152b;
+
+  --color-off-black-100: #454444;
+  --color-off-black-200: #363636;
+  --color-off-black-300: #2c2c2c;
+  --color-off-black-400: #232323;
+  --color-off-black-500: #1d1c1c;
+  --color-off-black-600: #161616;
+  --color-off-black-700: #0a0a0a;
+
+  --text-xxs: 10px;
+  --font-neuropol: 'Neuropol';
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-overscroll {
+    overscroll-behavior: none;
+    overflow: hidden;
+    -webkit-overflow-scrolling: auto;
+  }
+}
+
+/* windows fix for webview dragging on x and y axis during scroll */
+html,
+body {
+  overflow: hidden;
+  height: 100%;
+  position: fixed;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 32px;
+  height: 20px;
+   border-radius: 15px;
+}
+
+::-webkit-scrollbar-track {
+  width: 20px;
+  background: #161616;
+  border-radius: 22px;
+  border: 12px solid transparent;
+  /*margin-bottom: 44px;*/
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #0a0a0a;
+  border: 12px solid transparent;
+  border-radius: 22px;
+  background-clip: content-box;
+}
+
+#no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;
+}
+
+#no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+button {
+  cursor: pointer;
+}
