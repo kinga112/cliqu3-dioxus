@@ -4,8 +4,10 @@ use dioxus::prelude::*;
 use xmtp::content::Content;
 
 use crate::{
-    app_state::APP_STATE, components::server::channel::message::content::BasicContent,
+    app_state::APP_STATE,
+    components::server::channel::message::content::BasicContent,
     modules::xmtp::xmtp::Msg,
+    states::{server_states::CURRENT_TEXT_CHANNEL, user_states::MemberProfile},
 };
 
 const CARROT: Asset = asset!("/assets/icons/carrot.svg");
@@ -38,28 +40,35 @@ pub fn ReplyContent(
     let empty_msg = Msg {
         id: "".to_string(),
         content: Content::Text("".to_string()),
-        // content_type: "".to_string(),
         from: "".to_string(),
         reactions: HashMap::new(),
-        // reactions: Vec::new(),
         timestamp: 0,
     };
 
-    let from = msg_state
+    let msg = msg_state
         .read()
         .as_ref()
         .unwrap_or_else(|| &empty_msg)
-        .from
         .clone();
 
-    let referenced_message_content = msg_state
+    let text_channel = CURRENT_TEXT_CHANNEL
         .read()
-        .as_ref()
-        .unwrap_or_else(|| &empty_msg)
-        .content
-        .clone();
+        .clone()
+        .expect("text channel is none?");
 
-    let content_string = match referenced_message_content {
+    let temp_member_profile = MemberProfile {
+        address: String::new(),
+        avatar: String::new(),
+        name: String::new(),
+        description: String::new(),
+    };
+
+    let profile = text_channel
+        .members
+        .get(&msg.from.clone())
+        .unwrap_or_else(|| &temp_member_profile);
+
+    let content_string = match msg.content {
         Content::Text(text) => text,
         _ => "Other Text???".to_string(),
     };
@@ -78,7 +87,7 @@ pub fn ReplyContent(
                 }
                 span {
                     class: "font-medium text-deep-purple-200 hover:underline cursor-pointer",
-                    "{from}"
+                    "{profile.address}"
                 }
                 span {
                     class: "text-zinc-400 truncate max-w-[200px] sm:max-w-xs",

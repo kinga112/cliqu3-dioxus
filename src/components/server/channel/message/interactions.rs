@@ -50,7 +50,7 @@ pub fn Interactions() -> Element {
     // let message_text = message.content
     rsx! {
         div {
-            class: "absolute right-5 -top-2 w-20 h-10 bg-deep-purple-300 rounded-lg z-10 invisible group-hover:visible",
+            class: "absolute right-5 -top-5 w-20 h-10 bg-deep-purple-300 rounded-lg z-10 invisible group-hover:visible",
             div {
                 class: "flex h-10 p-1.5 relative gap-2 place-items-center justify-center",
                 button {

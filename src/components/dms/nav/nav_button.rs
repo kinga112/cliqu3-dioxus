@@ -45,7 +45,10 @@ async fn set_current_dm(id: String) {
     //     .expect("convo with id does not exist");
     let dm = xmtp
         .get_conversation(&id)
+        .await
         .expect("failed to get dm text channel");
+
+    println!("NEW DM MEMBERS: {:?}", dm.members.clone());
 
     *DM_MESSAGES.write() = dm.messages.clone();
     *CURRENT_DIRECT_MESSAGE.write() = Some(dm);

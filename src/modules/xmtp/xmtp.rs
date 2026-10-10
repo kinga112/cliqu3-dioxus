@@ -1,4 +1,3 @@
-use crate::config;
 use crate::modules::docs::db::TextChannelMetaData;
 use crate::modules::walletconnect::crypto;
 use crate::modules::walletconnect::signer::WalletConnectXmtpSigner;
@@ -6,6 +5,7 @@ use crate::states::dm_states::DM_MESSAGES;
 use crate::states::global_states::{CURRENT_SCREEN, Screen};
 use crate::states::server_states::{MESSAGES, OUTBOX_MESSAGES};
 use crate::states::user_states::{MemberProfile, USER};
+use crate::{config, smart_contract};
 use aes_gcm::Aes128Gcm;
 use alloy::hex;
 use base64::prelude::*;
@@ -18,6 +18,7 @@ use alloy::{
 };
 use dioxus::signals::{ReadableExt, WritableExt, WritableVecExt};
 use prost::Message as ProstMessage;
+use tokio::runtime::Handle;
 use tokio::task::JoinError;
 use xmtp::{ConversationType, ListMessagesOptions, XmtpError};
 
@@ -210,8 +211,8 @@ impl XMTP {
         Ok(convo.id())
     }
 
-    // pub fn get_conversation(&self, id: &str) -> Result<Conversation, String> {
-    pub fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
+    // pub fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
+    pub async fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
         // change function name to get_text_channel?
         let convo = self
             .client
@@ -247,12 +248,31 @@ impl XMTP {
                 .map(|id| id.to_string())
                 .expect("failed to get address");
             println!("HERE IS THE ADDRESS: {:?}", address.clone());
-            let profile = MemberProfile {
-                address: address,
+
+            let mut profile = MemberProfile {
+                address: address.clone(),
                 name: "".to_string(),
                 avatar: "".to_string(),
                 description: "".to_string(),
             };
+
+            // let result = smart_contract::interact::get_profile(&address).await;
+            // let handle = Handle::current();
+            // Block the current thread until the async function completes
+            // let result =
+            // handle.block_on(async { smart_contract::interact::get_profile(&address).await });
+
+            let result = smart_contract::interact::get_profile(&address).await;
+
+            match result {
+                Ok(user_profile) => {
+                    profile = user_profile;
+                }
+                Err(e) => {
+                    eprint!("GETTING PROFILE FAILED WITH ERROR: {:?}", e);
+                }
+            }
+
             member_profiles.insert(member.inbox_id, profile);
         }
 
@@ -354,7 +374,7 @@ impl XMTP {
         //         dms.push(convo);
         //     }
         // }
-
+        // let a = convos[0].members()
         Ok(convos)
     }
 

@@ -75,6 +75,7 @@ async fn select_server(metadata: ServerMetadata) {
         .expect("xmtp client not initialized?");
     let text_channel = xmtp
         .get_conversation(&server.text_channels[0].id)
+        .await
         .expect("failed to get text channel");
 
     *CURRENT_TEXT_CHANNEL.write() = Some(text_channel.clone());

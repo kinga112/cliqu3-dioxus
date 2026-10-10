@@ -8,10 +8,10 @@ use crate::{
     components::server::channel::message::{DisplayName, Interactions, Reactions},
     modules::xmtp::xmtp::Msg,
     states::{
-        dm_states::DM_MESSAGES,
+        dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES},
         global_states::{CURRENT_SCREEN, Screen},
-        server_states::MESSAGES,
-        user_states::USER,
+        server_states::{CURRENT_TEXT_CHANNEL, MESSAGES},
+        user_states::{MemberProfile, USER},
     },
 };
 
@@ -62,8 +62,33 @@ pub fn BasicContent(children: Element) -> Element {
     let local: DateTime<Local> = DateTime::from(date);
     let mut formated_date = local.format("%B %d, %Y %l:%M %p").to_string();
 
-    let user = USER.read().clone();
-    let profile = user.profile.expect("user profile is null");
+    let mut member_profiles = HashMap::new();
+    match *CURRENT_SCREEN.read() {
+        Screen::Server => {
+            let text_channel = CURRENT_TEXT_CHANNEL
+                .read()
+                .clone()
+                .expect("failed to get current text_channel");
+            member_profiles = text_channel.members;
+        }
+        Screen::DirectMessages => {
+            let dm = CURRENT_DIRECT_MESSAGE
+                .read()
+                .clone()
+                .expect("failed to get current text_channel");
+            member_profiles = dm.members;
+        }
+        Screen::Settings => {}
+    }
+
+    let user_profile = member_profiles
+        .get(&message.from)
+        .clone()
+        .expect("failed to get user profile from members profile hashmap")
+        .clone();
+
+    let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
+    let profile_avatar = user_profile.clone().avatar;
 
     if within_five {
         formated_date = local.format("%l:%M %p").to_string();
@@ -92,14 +117,18 @@ pub fn BasicContent(children: Element) -> Element {
                 img {
                     // should Avatar have rounded-xl??
                     class: "w-14 h-14 bg-deep-purple-100 rounded-xl object-cover shrink-0 select-none pointer-events-none",
-                    src: "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg",
-
+                    src: if profile_avatar != "" {
+                        "{profile_avatar}"
+                    }else{
+                        "{avatar}"
+                    }
                 }
                 div {
                     class: "flex flex-col w-full",
                     div {
                         class: "flex flex-row place-items-center gap-2",
-                        DisplayName{profile: profile}
+                        // DisplayName{profile: profile}
+                        DisplayName{profile: user_profile}
                         div {
                             class: "text-xxs font-semibold select-none",
                             "{formated_date}"

@@ -49,6 +49,7 @@ async fn create_new_dm(address: String) {
     let convo = xmtp.client.dm(&recipient).expect("failed to create new dm");
     let dm = xmtp
         .get_conversation(&convo.id())
+        .await
         .expect("failed to get dm text channel");
     *CURRENT_DIRECT_MESSAGE.write() = Some(dm);
     // let a = self.client.dm

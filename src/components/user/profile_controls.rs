@@ -59,7 +59,9 @@ pub fn ProfileControls(open: Signal<bool>) -> Element {
         .expect("failed to get user profile");
     rsx! {
         div {
-            class: "absolute flex p-2 gap-1 left-[75px] bottom-0 bg-off-black-400 border border-off-black-300 rounded-2xl z-50",
+            class: "absolute w-[450px] left-[75px] bottom-0 z-50",
+        div {
+            class: "flex p-2 gap-1 bg-off-black-400 border border-off-black-300 rounded-2xl w-fit",
             onmounted: move |data| {
                 spawn(async move {
                     if let Ok(rect) = data.get_client_rect().await {
@@ -105,6 +107,7 @@ pub fn ProfileControls(open: Signal<bool>) -> Element {
                     }
                 }
             }
+        }
         }
     }
 }

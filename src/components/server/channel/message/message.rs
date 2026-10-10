@@ -6,7 +6,7 @@ use xmtp::content::{Attachment, Content, Reaction, ReactionAction, RemoteAttachm
 
 use crate::{
     components::server::channel::message::{
-        DisplayName, Interactions,
+        Interactions,
         content::{AttachmentContent, BasicContent, InviteContent, ReplyContent},
     },
     modules::xmtp::xmtp::{Msg, TextChannel},

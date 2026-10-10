@@ -16,7 +16,11 @@ pub fn DisplayName(profile: MemberProfile) -> Element {
             button {
                 class: "text-lg font-semibold hover:underline hover:text-deep-purple-200",
                 onclick: move |_| open_user_info.set(true),
-                "{profile.address}"
+                if profile.name.clone() != "" {
+                    "{profile.name}"
+                }else{
+                    "{profile.address}"
+                }
             }
             div{
                 class: "absolute left-full top-0 ml-2",

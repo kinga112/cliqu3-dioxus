@@ -19,6 +19,7 @@ pub fn DirectMessage() -> Element {
         .members
         .into_iter()
         .map(|(inbox_id, member)| {
+            println!("MEMBER IN DM: {:?}", member.clone());
             rsx! {
                 if USER.read().clone().profile.expect("failed to get user profile").address != member.address{
                     div {
@@ -33,7 +34,7 @@ pub fn DirectMessage() -> Element {
         div {
             class: "flex flex-col overflow-hidden h-full w-full bg-off-black-500",
             div {
-                class: "h-14",
+                class: "h-fit",
                 {members}
             }
             div {

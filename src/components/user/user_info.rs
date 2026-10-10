@@ -45,13 +45,29 @@ pub fn UserInfo(profile: MemberProfile, open: Option<Signal<bool>>) -> Element {
 
     let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
 
+    let mut address_1 = "";
+    let mut address_2 = String::new();
+    if profile.address != "" {
+        let (address_start, address_end) = profile.address.split_at(21);
+        let (start, _) = address_start.split_at(12);
+        address_1 = start;
+        let reversed_address_end: String = address_end.chars().rev().collect();
+        let (end_reversed, _) = reversed_address_end.split_at(12);
+        address_2 = end_reversed.chars().rev().collect();
+    }
+
     rsx! {
         div {
             class: "relative h-36 w-96 shadow-lg bg-off-black-400 rounded-xl z-50 overflow-hidden",
             img {
                 class: "absolute w-full h-full blur-md select-none -z-10",
+                src: if profile.avatar.clone() != "" {
+                    "{profile.avatar.clone()}"
+                }else{
+                    "{avatar}"
+                }
                 // src: profile.avatar.clone(),
-                src: avatar,
+                // src: avatar,
             }
             div {
                 class: "w-full h-full rounded-xl overflow-hidden pointer-events-none z-50",
@@ -67,7 +83,11 @@ pub fn UserInfo(profile: MemberProfile, open: Option<Signal<bool>>) -> Element {
                     img {
                         class: "w-28 h-28 rounded-lg shrink-0 object-cover select-none",
                         // src: profile.avatar,
-                        src: avatar,
+                        src: if profile.avatar.clone() != "" {
+                            "{profile.avatar.clone()}"
+                        }else{
+                            "{avatar}"
+                        }
                     }
                     div {
                         class: "h-28 p-2 w-56 rounded-lg text-deep-purple-500 bg-white/20 shadow-lg ring-1 ring-black/5",
@@ -82,10 +102,11 @@ pub fn UserInfo(profile: MemberProfile, open: Option<Signal<bool>>) -> Element {
                                 "{profile.description}"
                             }
                             button {
-                                class: "text-xs hover:underline",
+                                class: "flex text-xs hover:underline",
                                 p {
                                     class: "truncate",
-                                    "{profile.address}"
+                                    // "{profile.address}"
+                                    "{address_1}...{address_2}"
                                 }
                             }
                         }

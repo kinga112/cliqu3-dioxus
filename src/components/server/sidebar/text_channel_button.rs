@@ -58,6 +58,7 @@ async fn select_text_channel(id: String) {
         .expect("xmtp client not initialized?");
     let text_channel = xmtp
         .get_conversation(&id)
+        .await
         .expect("failed to get text channel");
     println!("SETTING TEXT CHANNEL: {:?}", text_channel.metadata.name);
 

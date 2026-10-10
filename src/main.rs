@@ -19,6 +19,7 @@ mod app_state;
 mod components;
 mod config;
 mod modules;
+mod smart_contract;
 mod states;
 mod views;
 

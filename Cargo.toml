@@ -42,6 +42,7 @@ strum = "0.26"
 strum_macros = "0.26"
 prost = "0.14.4"
 iroh-live = { git = "https://github.com/n0-computer/iroh-live" }
+reqwest = "0.13.3"
 
 [features]
 default = ["desktop"]

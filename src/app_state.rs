@@ -2,6 +2,7 @@ use crate::modules::docs::db::ServerMetadata;
 use crate::states::server_states::SERVER_LIST;
 use crate::states::user_states::AUTH_STATE;
 // use crate::states::user_states::ADDRESS;
+use crate::smart_contract;
 use crate::states::user_states::AuthState;
 use crate::states::user_states::MemberProfile;
 use crate::states::user_states::USER;
@@ -127,7 +128,7 @@ impl AppState {
         // auto login for testing
         let xmtp = XMTP::new(
             None,
-            Some("0x6095b052f6dff3fe5a0779e3e20240b47afabb84".to_string()),
+            Some("0x3f1eae7d46d88f08fc2f8ed27fcb2ab183eb2d0e".to_string()),
         );
         xmtp.init_stream();
         let inbox_id = xmtp
@@ -148,18 +149,34 @@ impl AppState {
         // *AUTH_STATE.write() = AuthState::Authenticated;
         // *ADDRESS.write() = Some(address);
         // USER.write().authorized = AuthState::Authenticated;
-        *AUTH_STATE.write() = AuthState::Authenticated;
-        USER.write().inbox_id = inbox_id;
-        USER.write().profile = Some(MemberProfile {
-            // address: address,
-            address: addy,
+        // *AUTH_STATE.write() = AuthState::Authenticated;
+        // *USER.write().inbox_id = inbox_id;
+
+        let mut profile = MemberProfile {
+            address: addy.clone(),
             name: "".to_string(),
             avatar: "".to_string(),
             description: "".to_string(),
-        });
+        };
 
-        // Ok(address)
-        // Ok((address, inbox_id))
+        println!("ADDY: {:?}", addy.clone());
+        let result = smart_contract::interact::get_profile(&addy).await;
+
+        match result {
+            Ok(user_profile) => {
+                println!(
+                    "GOT USER PROFILE IN CHECK SAVED USER: {:?}",
+                    user_profile.clone()
+                );
+                profile = user_profile;
+            }
+            Err(e) => {
+                eprint!("GETTING PROFILE FAILED WITH ERROR: {:?}", e);
+            }
+        }
+
+        USER.write().profile = Some(profile);
+        *AUTH_STATE.write() = AuthState::Authenticated;
     }
 
     // pub fn init_db(&mut self, db: ServerDocs) -> Result<()> {

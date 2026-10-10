@@ -31,6 +31,19 @@ pub fn SideNav() -> Element {
             rsx! {ServerButton { metadata: metadata }}
         });
 
+    let profile = USER.read().profile.clone().expect("failed to get profile");
+    // let profile_option = USER.read().profile.clone();
+    // match profile_option {
+    //     Some(profile) => {
+    //         println!("GOT MEMBER PROFILE IN SIDENAV: {:?}", profile);
+    //     }
+    //     None => {
+    //         println!("FAILED TO GET MEMBER PROFILE IN SIDENAV");
+    //     }
+    // }
+
+    let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
+
     rsx! {
         div {
             class: "flex relative",
@@ -76,7 +89,12 @@ pub fn SideNav() -> Element {
                             onclick: move |_| open_profile_controls.toggle(),
                             img {
                                 class: "object-cover w-12 h-12 rounded-xl",
-                                src: "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg"
+                                // src: avatar,
+                                src: if profile.avatar.clone() != "" {
+                                    "{profile.avatar}"
+                                }else{
+                                    "{avatar}"
+                                }
                             }
                         }
                         // ProfileControls{open: open_profile_controls}
