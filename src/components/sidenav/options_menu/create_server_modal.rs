@@ -170,8 +170,8 @@ async fn create_server(
         let address = USER
             .read()
             .profile
-            .as_ref()
-            .expect("No User Profile")
+            // .as_ref()
+            // .expect("No User Profile")
             .address
             .clone();
         let app_state = APP_STATE.lock().await;

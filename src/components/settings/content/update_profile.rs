@@ -13,11 +13,7 @@ pub fn UpdateProfile() -> Element {
     let mut bio = use_signal(|| String::new());
     let mut avatar = use_signal(|| String::new());
 
-    let user_profile = USER
-        .read()
-        .clone()
-        .profile
-        .expect("could not get user profile");
+    let user_profile = USER.read().clone().profile;
     let mut profile_username = user_profile.name;
     if *username.read() != "" {
         profile_username = username.read().clone();

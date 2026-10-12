@@ -31,7 +31,7 @@ pub fn SideNav() -> Element {
             rsx! {ServerButton { metadata: metadata }}
         });
 
-    let profile = USER.read().profile.clone().expect("failed to get profile");
+    let profile = USER.read().profile.clone();
     // let profile_option = USER.read().profile.clone();
     // match profile_option {
     //     Some(profile) => {
@@ -121,7 +121,8 @@ pub fn SideNav() -> Element {
 }
 
 fn on_dm_click() {
-    let profile = USER.read().profile.clone().expect("failed to get profile");
+    let profile = USER.read().profile.clone();
+    // .expect("failed to get profile");
     println!("Clicked DM: {:?}", profile.address);
     *CURRENT_SCREEN.write() = Screen::DirectMessages;
 }

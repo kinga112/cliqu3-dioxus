@@ -150,7 +150,7 @@ impl AppState {
         // *ADDRESS.write() = Some(address);
         // USER.write().authorized = AuthState::Authenticated;
         // *AUTH_STATE.write() = AuthState::Authenticated;
-        // *USER.write().inbox_id = inbox_id;
+        USER.write().inbox_id = inbox_id;
 
         let mut profile = MemberProfile {
             address: addy.clone(),
@@ -175,7 +175,7 @@ impl AppState {
             }
         }
 
-        USER.write().profile = Some(profile);
+        USER.write().profile = profile;
         *AUTH_STATE.write() = AuthState::Authenticated;
     }
 

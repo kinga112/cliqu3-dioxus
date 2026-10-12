@@ -464,6 +464,7 @@ impl XMTP {
                 .reactions
                 .entry(emoji.to_string())
                 .or_insert_with(Vec::new);
+            println!("SENDER INBOX ID: {:?}", sender_inbox_id.to_string());
             match action {
                 ReactionAction::Added => {
                     if !users.contains(&sender_inbox_id.to_string()) {

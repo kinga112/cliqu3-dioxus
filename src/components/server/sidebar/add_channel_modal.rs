@@ -105,8 +105,8 @@ async fn add_new_channel(name: String, description: String) {
             let address = USER
                 .read()
                 .profile
-                .as_ref()
-                .expect("No User Profile")
+                // .as_ref()
+                // .expect("No User Profile")
                 .address
                 .clone();
             println!("CURRENT USER ADDRESSS: {:?}", address.clone());

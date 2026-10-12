@@ -22,18 +22,22 @@ pub struct User {
     pub audio: bool,
     pub video: bool,
     pub silence: bool,
-    pub profile: Option<MemberProfile>,
+    pub profile: MemberProfile,
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
-            // authorized: AuthState::Checking,
             inbox_id: String::new(),
             audio: true,
             video: false,
             silence: false,
-            profile: None,
+            profile: MemberProfile {
+                address: String::new(),
+                name: String::new(),
+                description: String::new(),
+                avatar: String::new(),
+            },
         }
     }
 }

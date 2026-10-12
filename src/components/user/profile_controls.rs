@@ -52,11 +52,7 @@ pub fn ProfileControls(open: Signal<bool>) -> Element {
     }
 
     // let stay_open = Signal::new(true);
-    let profile = USER
-        .read()
-        .clone()
-        .profile
-        .expect("failed to get user profile");
+    let profile = USER.read().clone().profile;
     rsx! {
         div {
             class: "absolute w-[450px] left-[75px] bottom-0 z-50",

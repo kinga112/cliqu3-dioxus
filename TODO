@@ -21,3 +21,5 @@
 18. Should I make CURRENT_TEXT_CHANNEL state just the id of the text channel? Then whenever text channel is needed it fetches the data
 19. Allow server creation via discord template link using this api: https://discord.com/api/v10/guilds/templates/{template code} code: R2xY28n8grGZ
 20. When clicking the emoji button on a message to reaction, keep that message highlighted until clicked off
+21. Create default profile and remove it as an option.
+22. Reactions not sending for DMs

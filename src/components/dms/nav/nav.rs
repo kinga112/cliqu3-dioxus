@@ -29,14 +29,7 @@ pub fn DirectMessageNav() -> Element {
                 .get(0)
                 .map(|id| id.to_string())
                 .expect("failed to get address");
-            if USER
-                .read()
-                .clone()
-                .profile
-                .expect("failed to get user profile")
-                .address
-                != address
-            {
+            if USER.read().clone().profile.address != address {
                 from = address;
             }
         }

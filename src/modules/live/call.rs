@@ -41,7 +41,7 @@ impl CallHandler {
             .read()
             .profile
             .clone()
-            .expect("No user profile initialized?")
+            // .expect("No user profile initialized?")
             .address;
 
         Ok(Self {
