@@ -1,6 +1,10 @@
 use dioxus::prelude::*;
 
-use crate::{components::user::UserInfo, smart_contract, states::user_states::MemberProfile};
+use crate::{
+    components::user::UserInfo,
+    smart_contract,
+    states::user_states::{MemberProfile, USER},
+};
 
 #[component]
 pub fn UpdateProfile() -> Element {
@@ -9,11 +13,29 @@ pub fn UpdateProfile() -> Element {
     let mut bio = use_signal(|| String::new());
     let mut avatar = use_signal(|| String::new());
 
+    let user_profile = USER
+        .read()
+        .clone()
+        .profile
+        .expect("could not get user profile");
+    let mut profile_username = user_profile.name;
+    if *username.read() != "" {
+        profile_username = username.read().clone();
+    }
+    let mut profile_bio = user_profile.description;
+    if *bio.read() != "" {
+        profile_bio = bio.read().clone();
+    }
+    let mut profile_avatar = user_profile.avatar;
+    if *avatar.read() != "" {
+        profile_avatar = avatar.read().clone();
+    }
+
     let tmp_profile = MemberProfile {
-        address: String::new(),
-        name: username.read().clone(),
-        description: bio.read().clone(),
-        avatar: avatar.read().clone(),
+        address: user_profile.address,
+        name: profile_username,
+        description: profile_bio,
+        avatar: profile_avatar,
     };
 
     rsx! {
