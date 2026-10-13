@@ -20,7 +20,9 @@ use dioxus::signals::{ReadableExt, WritableExt, WritableVecExt};
 use prost::Message as ProstMessage;
 use tokio::runtime::Handle;
 use tokio::task::JoinError;
-use xmtp::{ConversationType, ListMessagesOptions, XmtpError};
+use xmtp::{
+    ConversationOrderBy, ConversationType, ListConversationsOptions, ListMessagesOptions, XmtpError,
+};
 
 // use reqwest::Url;
 // use serde::{Deserialize, Serialize};
@@ -360,21 +362,24 @@ impl XMTP {
         Ok(convos)
     }
 
-    pub fn get_dms(&self) -> Result<Vec<Conversation>, String> {
+    pub fn get_dms(&self, consent_state: ConsentState) -> Result<Vec<Conversation>, String> {
+        let options = ListConversationsOptions {
+            conversation_type: Some(ConversationType::Dm),
+            limit: 10,
+            created_after_ns: 0,
+            created_before_ns: 0,
+            last_activity_after_ns: 0,
+            last_activity_before_ns: 0,
+            consent_states: vec![consent_state],
+            order_by: ConversationOrderBy::LastActivity,
+            include_duplicate_dms: false,
+        };
+
         let convos = self
             .client
-            .list_dms()
-            .expect("failed to list dm conversations");
-        // let mut dms = Vec::<Conversation>::new();
-        // for convo in convos {
-        //     if convo.name().is_none() {
-        //         continue;
-        //     }
-        //     if convo.name().unwrap() == "Cliqu3 DM Group" {
-        //         dms.push(convo);
-        //     }
-        // }
-        // let a = convos[0].members()
+            .list_conversations(&options)
+            .expect("failed to get dms");
+
         Ok(convos)
     }
 
@@ -403,7 +408,6 @@ impl XMTP {
                     .expect("failed 1")
                     .expect("failed 2");
                 let msg = self.get_msg(message).expect("failed to get message");
-                // MESSAGES.write().push(Arc::new(msg));
                 match *CURRENT_SCREEN.read() {
                     Screen::Server => {
                         MESSAGES.write().push(msg);
@@ -411,9 +415,7 @@ impl XMTP {
                     Screen::DirectMessages => {
                         DM_MESSAGES.write().push(msg);
                     }
-                    Screen::Settings => {
-                        MESSAGES.write().push(msg);
-                    }
+                    Screen::Settings => {}
                 }
                 // MESSAGES.write().push(msg);
                 OUTBOX_MESSAGES.write().retain(|msg| msg != &text);
@@ -464,7 +466,6 @@ impl XMTP {
                 .reactions
                 .entry(emoji.to_string())
                 .or_insert_with(Vec::new);
-            println!("SENDER INBOX ID: {:?}", sender_inbox_id.to_string());
             match action {
                 ReactionAction::Added => {
                     if !users.contains(&sender_inbox_id.to_string()) {

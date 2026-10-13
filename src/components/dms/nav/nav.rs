@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use xmtp::content::Content;
+use xmtp::{ConsentState, Conversation, content::Content};
 
 use crate::{
     app_state::APP_STATE, components::dms::nav::DirectMessageNavButton, states::user_states::USER,
@@ -10,12 +10,14 @@ const ADD: Asset = asset!("/assets/icons/add-cropped.svg");
 #[component]
 pub fn DirectMessageNav() -> Element {
     let mut dms = use_signal(|| Vec::new());
+    let mut show_requests = use_signal(|| false);
 
     use_effect(move || {
         spawn(async move {
-            let app_state = APP_STATE.lock().await;
-            let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
-            dms.set(xmtp.get_dms().expect("failed to get dms"));
+            let messages = get_messages(ConsentState::Allowed)
+                .await
+                .expect("failed to get dm messages 2");
+            dms.set(messages);
         });
     });
 
@@ -80,10 +82,49 @@ pub fn DirectMessageNav() -> Element {
                     }
                 }
             }
+            div {
+                class: "flex justify-center gap-2 place-items-center h-12 p-2",
+                button {
+                    class: "hover:bg-off-black-400 w-full h-10 rounded-lg",
+                    class: if *show_requests.read() == false {"bg-off-black-400"} else {"bg-off-black-600"},
+                    onclick: move |_| async move {
+                        if *show_requests.read() != false {
+                            show_requests.set(false);
+                            let messages = get_messages(ConsentState::Allowed)
+                                .await
+                                .expect("failed to get dm messages 1");
+                            dms.set(messages);
+                        }
+                    },
+                    "Accepted"
+                }
+                button {
+                    class: "hover:bg-off-black-400 w-full h-10 rounded-lg",
+                    class: if *show_requests.read() == true {"bg-off-black-400"} else {"bg-off-black-600"},
+                    onclick: move |_| async move {
+                        if *show_requests.read() != true {
+                            show_requests.set(true);
+                            let messages = get_messages(ConsentState::Unknown)
+                                .await
+                                .expect("failed to get dm messages 1");
+                            dms.set(messages);
+                        }
+                    },
+                    "Requests"
+                }
+            }
             div{
                 class: "px-2",
                 {dm_items}
             }
         }
     }
+}
+
+async fn get_messages(consent_state: ConsentState) -> Result<Vec<Conversation>, String> {
+    println!("RUNNING GET DMS");
+    let app_state = APP_STATE.lock().await;
+    let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    let dms = xmtp.get_dms(consent_state).expect("failed to get dms");
+    Ok(dms)
 }
