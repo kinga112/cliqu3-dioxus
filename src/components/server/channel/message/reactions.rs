@@ -7,6 +7,8 @@ use crate::{
     app_state::APP_STATE,
     modules::xmtp::xmtp::{Msg, TextChannel},
     states::{
+        dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES},
+        global_states::{CURRENT_SCREEN, Screen},
         server_states::{CURRENT_TEXT_CHANNEL, MESSAGES},
         user_states::USER,
     },
@@ -16,12 +18,24 @@ use crate::{
 pub fn Reactions() -> Element {
     // Is there a better way to deal with this?
     let msg_id = use_context::<String>();
-    let messages = MESSAGES.read().clone();
+    // let messages = MESSAGES.read().clone();
+    let messages;
+    match *CURRENT_SCREEN.read() {
+        Screen::Server => {
+            messages = MESSAGES.read().clone();
+        }
+        Screen::DirectMessages => {
+            messages = DM_MESSAGES.read().clone();
+        }
+        Screen::Settings => {
+            messages = MESSAGES.read().clone();
+        }
+    }
     let mut message = Msg {
-        id: "".to_string(),
-        content: Content::Text(("".to_string())),
-        from: "".to_string(),
-        timestamp: 10000000000,
+        id: String::new(),
+        content: Content::Text(String::new()),
+        from: String::new(),
+        timestamp: 0,
         reactions: HashMap::new(),
     };
 
@@ -65,10 +79,25 @@ pub fn ReactionElement(emoji_content: String, user_list: Vec<String>) -> Element
         // let message = use_context::<Signal<Msg>>();
         let msg_id = use_context::<String>();
         // let text_channel = use_context::<TextChannel>();
-        let text_channel = CURRENT_TEXT_CHANNEL
-            .read()
-            .clone()
-            .expect("text channel is none?");
+        let channel;
+        match *CURRENT_SCREEN.read() {
+            Screen::Server => {
+                channel = CURRENT_TEXT_CHANNEL
+                    .read()
+                    .clone()
+                    .expect("text channel is none?");
+            }
+            Screen::DirectMessages => {
+                channel = CURRENT_DIRECT_MESSAGE.read().clone().expect("dm is none?");
+            }
+            Screen::Settings => {
+                channel = CURRENT_TEXT_CHANNEL
+                    .read()
+                    .clone()
+                    .expect("text channel is none?");
+            }
+        }
+        let id = channel.metadata.id;
 
         let app_state = APP_STATE.lock().await;
         // let users = message.reactions.get(emoji.as_str()).unwrap();
@@ -81,12 +110,7 @@ pub fn ReactionElement(emoji_content: String, user_list: Vec<String>) -> Element
                 .xmtp
                 .as_ref()
                 .expect("xmtp not initialized")
-                .send_reaction(
-                    &text_channel.metadata.id,
-                    &msg_id,
-                    &emoji_content,
-                    ReactionAction::Removed,
-                )
+                .send_reaction(&id, &msg_id, &emoji_content, ReactionAction::Removed)
                 .await;
         } else {
             println!("SENDING EMOJI {:?}", emoji_content);
@@ -94,12 +118,7 @@ pub fn ReactionElement(emoji_content: String, user_list: Vec<String>) -> Element
                 .xmtp
                 .as_ref()
                 .expect("xmtp not initialized")
-                .send_reaction(
-                    &text_channel.metadata.id,
-                    &msg_id,
-                    &emoji_content,
-                    ReactionAction::Added,
-                )
+                .send_reaction(&id, &msg_id, &emoji_content, ReactionAction::Added)
                 .await;
         }
     }

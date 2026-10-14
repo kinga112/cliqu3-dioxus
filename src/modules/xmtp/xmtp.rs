@@ -326,6 +326,7 @@ impl XMTP {
         let content = message.decode().expect("failed to decode message");
         let mut reactions: HashMap<String, Vec<String>> = HashMap::new();
         for reaction in message.reactions {
+            println!("REACTION: {:?}", reaction.content);
             if reactions.get(&reaction.content).is_some() {
                 // let r = reactions.get(&reaction.content).unwrap();
                 if reaction.action == ReactionAction::Added {
@@ -408,7 +409,7 @@ impl XMTP {
                     .expect("failed 1")
                     .expect("failed 2");
                 let msg = self.get_msg(message).expect("failed to get message");
-                match *CURRENT_SCREEN.read() {
+                match *CURRENT_SCREEN.peek() {
                     Screen::Server => {
                         MESSAGES.write().push(msg);
                     }
@@ -432,7 +433,7 @@ impl XMTP {
         emoji: &str,
         action: ReactionAction,
     ) {
-        let user_inbox_id = USER.read().inbox_id.clone();
+        let user_inbox_id = USER.peek().inbox_id.clone();
         self.apply_reaction(message_id, &user_inbox_id, emoji, action);
         let convo = self
             .client
@@ -459,7 +460,19 @@ impl XMTP {
         emoji: &str,
         action: ReactionAction,
     ) {
-        let mut messages = MESSAGES.write();
+        // let mut messages = MESSAGES.write();
+        let mut messages;
+        match *CURRENT_SCREEN.peek() {
+            Screen::Server => {
+                messages = MESSAGES.write();
+            }
+            Screen::DirectMessages => {
+                messages = DM_MESSAGES.write();
+            }
+            Screen::Settings => {
+                messages = MESSAGES.write();
+            }
+        }
         if let Some(msg) = messages.iter_mut().find(|m| m.id == message_id) {
             let mut updated = (*msg).clone();
             let users = updated

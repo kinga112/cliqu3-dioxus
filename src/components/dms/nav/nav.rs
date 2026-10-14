@@ -83,7 +83,7 @@ pub fn DirectMessageNav() -> Element {
                 }
             }
             div {
-                class: "flex justify-center gap-2 place-items-center h-12 p-2",
+                class: "flex justify-center gap-1 place-items-center h-12 p-2",
                 button {
                     class: "hover:bg-off-black-400 w-full h-10 rounded-lg",
                     class: if *show_requests.read() == false {"bg-off-black-400"} else {"bg-off-black-600"},
@@ -106,7 +106,7 @@ pub fn DirectMessageNav() -> Element {
                             show_requests.set(true);
                             let messages = get_messages(ConsentState::Unknown)
                                 .await
-                                .expect("failed to get dm messages 1");
+                                .expect("failed to get dm messages 2");
                             dms.set(messages);
                         }
                     },

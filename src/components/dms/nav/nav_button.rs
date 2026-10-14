@@ -13,7 +13,7 @@ pub fn DirectMessageNavButton(id: String, from: String, message: String) -> Elem
             class: "bg-off-black-500 px-2 py-1 w-full shrink hover:bg-off-black-400 rounded-lg",
             onclick: move |_| set_current_dm(id.clone()),
             div {
-                class: "flex gap-4 place-items-center",
+                class: "flex gap-2 place-items-center",
                 div {
                     class: "w-12 h-12 bg-blue-300 rounded-md shrink-0 object-cover select-none",
                 }

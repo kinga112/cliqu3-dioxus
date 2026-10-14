@@ -21,5 +21,10 @@
 18. Should I make CURRENT_TEXT_CHANNEL state just the id of the text channel? Then whenever text channel is needed it fetches the data
 19. Allow server creation via discord template link using this api: https://discord.com/api/v10/guilds/templates/{template code} code: R2xY28n8grGZ
 20. When clicking the emoji button on a message to reaction, keep that message highlighted until clicked off
-22. Reactions not sending for DMs
 23. Add History sync for XMTP and iroh docs.
+24. Remove DM_MESSAGES state and just use MESSAGES for both.
+    -> Too many match statements checking between. Make it easy!
+    -> Once there is caching (Moka) for channels, speed will be fine
+25. Fix Emoji Modal lag for single messages
+    -> Have one load per channel (one for bottom bar?)
+    -> Open via x,y coordinates
