@@ -15,6 +15,7 @@ pub fn SettingsNavButton(content: SettingsContent) -> Element {
     match content.clone() {
         SettingsContent::UpdateProfile => name = "Update Profile".to_string(),
         SettingsContent::Audio => name = "Audio".to_string(),
+        SettingsContent::Archives => name = "Archives".to_string(),
         SettingsContent::TestItem1 => name = "Test Item 1".to_string(),
         SettingsContent::TestItem2 => name = "Test Item 2".to_string(),
         SettingsContent::TestItem3 => name = "Test Item 3".to_string(),

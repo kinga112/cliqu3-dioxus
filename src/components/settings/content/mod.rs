@@ -3,3 +3,6 @@ pub use update_profile::UpdateProfile;
 
 mod audio;
 pub use audio::Audio;
+
+mod archives;
+pub use archives::Archives;

@@ -18,6 +18,7 @@ pub fn SettingsNav() -> Element {
                 class: "flex flex-col gap-2",
                 SettingsNavButton{content: SettingsContent::UpdateProfile}
                 SettingsNavButton{content: SettingsContent::Audio}
+                SettingsNavButton{content: SettingsContent::Archives}
                 SettingsNavButton{content: SettingsContent::TestItem1}
                 SettingsNavButton{content: SettingsContent::TestItem2}
                 SettingsNavButton{content: SettingsContent::TestItem3}

@@ -18,6 +18,8 @@ use alloy::{
 };
 use dioxus::signals::{ReadableExt, WritableExt, WritableVecExt};
 use prost::Message as ProstMessage;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use tokio::runtime::Handle;
 use tokio::task::JoinError;
 use xmtp::{
@@ -216,6 +218,7 @@ impl XMTP {
     // pub fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
     pub async fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
         // change function name to get_text_channel?
+        // self.create_bytes_archive();
         let convo = self
             .client
             .conversation(id)
@@ -643,7 +646,7 @@ impl XMTP {
         // Ok(ens_name)
     }
 
-    async fn add_member(&self, ids: Vec<String>, address: String) {
+    pub async fn add_member(&self, ids: Vec<String>, address: String) {
         // add member to all allowed channels
         for id in ids {
             let convo = self
@@ -659,20 +662,49 @@ impl XMTP {
             let result = convo.add_members_by_identity(&[account]);
         }
     }
+
+    pub fn create_file_archive(&self) -> Result<(), XmtpError> {
+        let mut key = [0u8; 32];
+        OsRng.fill_bytes(&mut key);
+        let result = self
+            .client
+            .create_file_archive("C:/Users/kinga/Documents/cliqu3/archive.xmtp", &key);
+
+        // match result {
+        //     Ok(()) => {
+        //         println!("NO ERRORS DURING ARCHIVE");
+        //     }
+        //     Err(e) => {
+        //         println!("ERROR DURING ARCHIVE: {:?}", e);
+        //     }
+        // }
+        result
+    }
+
+    pub fn create_bytes_archive(&self) -> (Result<Vec<u8>, XmtpError>, [u8; 32]) {
+        // fn create_bytes_archive(&self) {
+        let mut key = [0u8; 32];
+        OsRng.fill_bytes(&mut key);
+        println!("THIS IS THE KEY: {:?}", key);
+        let result = self.client.create_bytes_archive(&key);
+
+        // match result {
+        //     Ok(bytes) => {
+        //         println!("GOT BYTES FROM ARCHIVE: {:?}", bytes);
+        //     }
+        //     Err(e) => {
+        //         println!("ERROR DURING ARCHIVE: {:?}", e);
+        //     }
+        // }
+        (result, key)
+    }
+
+    // fn import_file_archive(&self, key: &[u8; 32]) {
+    //     let result = self.client.import_file_archive("", key);
+    // }
+
+    pub fn import_bytes_archive(&self, data: &[u8], key: &[u8; 32]) -> Result<(), XmtpError> {
+        let result = self.client.import_bytes_archive(data, key);
+        result
+    }
 }
-
-// struct InviteContentStuff {
-//     ec: EncodedContent
-// }
-
-// impl  {
-//     fn encode_to_vec(&self) -> Vec<u8>
-//     where
-//         Self: Sized,
-//     {
-//         let mut buf = Vec::with_capacity(self.encoded_len());
-
-//         self.encode_raw(&mut buf);
-//         buf
-//     }
-// }

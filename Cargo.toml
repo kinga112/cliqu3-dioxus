@@ -38,11 +38,12 @@ serde_json = "1"
 qrcode-generator = "6.0.0"
 serde = "1.0.229"
 chrono = "0.4.45"
-strum = "0.26"
+strum = { version = "0.26", default-features = false, features = ["derive"] }
 strum_macros = "0.26"
 prost = "0.14.4"
 iroh-live = { git = "https://github.com/n0-computer/iroh-live" }
 reqwest = "0.13.3"
+bytes = "1.12.1"
 
 [features]
 default = ["desktop"]

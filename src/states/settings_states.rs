@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 pub enum SettingsContent {
     UpdateProfile,
     Audio,
+    Archives,
     TestItem1,
     TestItem2,
     TestItem3,

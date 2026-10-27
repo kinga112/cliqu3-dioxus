@@ -28,3 +28,5 @@
 25. Fix Emoji Modal lag for single messages
     -> Have one load per channel (one for bottom bar?)
     -> Open via x,y coordinates
+26. DM nav buttons that display last message: last message does not show Reaction types
+    -> returns Unknown type if Reaction, deeper issue inside xmtp
