@@ -18,7 +18,6 @@ use keyring::Entry;
 use std::path;
 use std::sync::Arc;
 use std::sync::LazyLock;
-// use tauri::Emitter;
 use tokio::sync::Mutex;
 
 pub static APP_STATE: LazyLock<Mutex<AppState>> = LazyLock::new(|| Mutex::new(AppState::default()));
@@ -46,9 +45,7 @@ impl AppState {
         }
     }
 
-    pub fn login(&mut self) -> Result<()> {
-        // println!("running login. address: {:?}", address);
-        // self.user = Some(address.to_string());
+    pub async fn login(&mut self) -> Result<()> {
         if self.xmtp.is_none() {
             return Ok(());
         }
@@ -58,6 +55,12 @@ impl AppState {
         entry
             .set_secret(address.as_bytes())
             .expect("failed to set random key in keyring");
+
+        let server_list = self
+            .init_db()
+            .await
+            .expect("Failed to init docs db or fetch servers");
+        *SERVER_LIST.write() = server_list;
 
         Ok(())
     }
@@ -71,7 +74,8 @@ impl AppState {
                 .expect("failed to delete password from keyring");
         }
         self.user = None;
-        // self.db = None;
+        self.xmtp = None;
+        self.db = None;
         Ok(())
     }
 
@@ -130,7 +134,6 @@ impl AppState {
             None,
             Some("0x3f1eae7d46d88f08fc2f8ed27fcb2ab183eb2d0e".to_string()),
         );
-        xmtp.init_stream();
         let inbox_id = xmtp
             .client
             .inbox_id()
@@ -144,12 +147,7 @@ impl AppState {
             .init_db()
             .await
             .expect("Failed to init docs db or fetch servers");
-        // let server_list =
         *SERVER_LIST.write() = server_list;
-        // *AUTH_STATE.write() = AuthState::Authenticated;
-        // *ADDRESS.write() = Some(address);
-        // USER.write().authorized = AuthState::Authenticated;
-        // *AUTH_STATE.write() = AuthState::Authenticated;
         USER.write().inbox_id = inbox_id;
 
         let mut profile = MemberProfile {

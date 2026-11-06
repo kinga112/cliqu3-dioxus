@@ -5,9 +5,9 @@ use crate::states::server_states::OUTBOX_MESSAGES;
 #[component]
 pub fn OutboxBanner() -> Element {
     let clone = OUTBOX_MESSAGES.read().clone();
-    let outbox_messages = clone.iter().enumerate().map(|(index, text)| {
+    let outbox_messages = clone.iter().enumerate().map(|(index, outbox_message)| {
         rsx! {
-            OutboxMessage { index: index, text: text }
+            OutboxMessage { index: index, text: outbox_message.message_text.clone() }
         }
     });
 

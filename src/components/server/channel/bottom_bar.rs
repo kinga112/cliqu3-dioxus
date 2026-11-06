@@ -3,14 +3,18 @@ use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
+use uuid::Uuid;
 use xmtp::content::Content;
 
 use crate::{
     app_state::APP_STATE,
-    components::server::channel::{OutboxBanner, emojis::EmojiModal},
-    modules::xmtp::xmtp::{Msg, TextChannel},
+    components::server::channel::{OutboxBanner, emojis::EmojiModal, outbox_banner::OutboxMessage},
+    modules::xmtp::{
+        // handler::XmtpCommand,
+        xmtp::{Msg, TextChannel},
+    },
     states::{
-        server_states::{MESSAGES, OUTBOX_MESSAGES, REPLY},
+        server_states::{MESSAGES, OUTBOX_MESSAGES, OutboxMessageType, REPLY},
         user_states::USER,
     },
 };
@@ -102,7 +106,7 @@ pub fn BottomBar(id: String) -> Element {
                                     width: 30,
                                 }
                             }
-                            EmojiModal{open: open_emoji_modal}
+                            // EmojiModal{open: open_emoji_modal}
                         }
                     }
                     button {
@@ -116,7 +120,6 @@ pub fn BottomBar(id: String) -> Element {
                         "Send"
                     }
                 }
-                // Outbox Banner
                 OutboxBanner{}
             }
         }
@@ -125,31 +128,61 @@ pub fn BottomBar(id: String) -> Element {
 
 async fn send_message(id: String, mut text_input: Signal<String>) {
     let text = text_input.read().clone();
-    text_input.set("".to_string());
-    OUTBOX_MESSAGES.write().push(text.clone());
-    let app_state = APP_STATE.lock().await;
-    // let reply = REPLY.read().is_none();
-    if REPLY.read().is_none() {
-        app_state
-            .xmtp
-            .as_ref()
-            .expect("xmtp not initialized")
-            .send_text(&id, text)
-            .await;
-    } else {
-        println!("SENDNING A REPLY 1");
-        // let reply = REPLY.read().as_ref().expect("");/
-        let reference = REPLY
-            .read()
-            .as_ref()
-            .expect("reply is none??")
-            .reference
-            .clone();
-        app_state
-            .xmtp
-            .as_ref()
-            .expect("xmtp not initialized")
-            .send_text_reply(&id, text, reference)
-            .await;
+    if text == "".to_string() {
+        return;
     }
+    let tmp_id = Uuid::new_v4().to_string();
+    let outbox_message = OutboxMessageType {
+        tmp_id: tmp_id.clone(),
+        message_id: "".to_string(),
+        message_text: text.clone(),
+    };
+    OUTBOX_MESSAGES.write().push(outbox_message);
+    text_input.set("".to_string());
+
+    spawn(async move {
+        let app_state = APP_STATE.lock().await;
+        if REPLY.read().is_none() {
+            let message_id = tokio::task::spawn_blocking(move || {
+                app_state
+                    .xmtp
+                    .as_ref()
+                    .expect("xmtp not initialized")
+                    .send_text(&id, text)
+                    .expect("failed to send text")
+            })
+            .await
+            .expect("failed send text");
+            println!("Outboxmessages: {:?}", OUTBOX_MESSAGES.peek());
+            for outbox_message in OUTBOX_MESSAGES.write().iter_mut() {
+                if *outbox_message.tmp_id == tmp_id {
+                    println!(
+                        "*
+                        *
+                        *
+                        Found the message with tmp id: {}
+                        *
+                        *",
+                        tmp_id
+                    );
+                    outbox_message.message_id = message_id.clone(); // Edits the item in place
+                }
+            }
+            println!("Outboxmessages: {:?}", OUTBOX_MESSAGES.peek());
+        } else {
+            println!("SENDNING A REPLY 1");
+            let reference = REPLY
+                .read()
+                .as_ref()
+                .expect("reply is none??")
+                .reference
+                .clone();
+            app_state
+                .xmtp
+                .as_ref()
+                .expect("xmtp not initialized")
+                .send_text_reply(&id, text, reference)
+                .await;
+        }
+    });
 }

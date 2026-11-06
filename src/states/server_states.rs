@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use dioxus::prelude::*;
+use xmtp::content::Content;
 
 use crate::modules::{
     docs::db::{Server, ServerMetadata, VoiceChannel},
@@ -19,12 +20,19 @@ pub enum AddChannelModalState {
     Closed,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct OutboxMessageType {
+    pub tmp_id: String,
+    pub message_id: String,
+    pub message_text: String,
+}
+
 pub static CURRENT_SERVER: GlobalSignal<Option<Server>> = Signal::global(|| None);
 pub static CURRENT_TEXT_CHANNEL: GlobalSignal<Option<TextChannel>> = Signal::global(|| None);
 pub static SERVER_LIST: GlobalSignal<Vec<ServerMetadata>> = Signal::global(Vec::new);
 // pub static MESSAGES: GlobalSignal<Vec<Arc<Msg>>> = Signal::global(Vec::new);
 pub static MESSAGES: GlobalSignal<Vec<Msg>> = Signal::global(Vec::new);
-pub static OUTBOX_MESSAGES: GlobalSignal<Vec<String>> = Signal::global(Vec::new);
+pub static OUTBOX_MESSAGES: GlobalSignal<Vec<OutboxMessageType>> = Signal::global(Vec::new);
 pub static REPLY: GlobalSignal<Option<ReplyState>> = Signal::global(|| None);
 //
 // Hashmap < Voice channel name, Voice Channel>

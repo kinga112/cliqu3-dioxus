@@ -1,7 +1,7 @@
 use crate::modules::docs::db::TextChannelMetaData;
-use crate::modules::walletconnect::crypto;
 use crate::modules::walletconnect::signer::WalletConnectXmtpSigner;
-use crate::states::dm_states::DM_MESSAGES;
+use crate::modules::xmtp::utilities;
+use crate::states::dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES};
 use crate::states::global_states::{CURRENT_SCREEN, Screen};
 use crate::states::server_states::{MESSAGES, OUTBOX_MESSAGES};
 use crate::states::user_states::{MemberProfile, USER};
@@ -16,47 +16,38 @@ use alloy::{
     // ens::EnsResolver, ens::ProviderEnsExt, primitives::address, providers::ProviderBuilder,
     signers::local::PrivateKeySigner,
 };
-use dioxus::signals::{ReadableExt, WritableExt, WritableVecExt};
+use dioxus::signals::ReadableExt;
 use prost::Message as ProstMessage;
 use rand::RngCore;
 use rand::rngs::OsRng;
-use tokio::runtime::Handle;
-use tokio::task::JoinError;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio_util::sync::CancellationToken;
 use xmtp::{
     ConversationOrderBy, ConversationType, ListConversationsOptions, ListMessagesOptions, XmtpError,
 };
 
-// use reqwest::Url;
-// use serde::{Deserialize, Serialize};
-use std::any::Any;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 use url::Url;
 // use tauri::Emitter;
-use xmtp::content::{ContentTypeId, EncodedContent, Reaction, ReactionAction, ReactionV2};
+use xmtp::content::{ContentTypeId, EncodedContent, Reaction, ReactionAction};
 use xmtp::{
     AccountIdentifier, AlloySigner, Client, ConsentState, Conversation, CreateGroupOptions, Env,
     IdentifierKind, Message, MessageEvent, Recipient, Signer, content::Content,
 };
 
 use aes_gcm::{
-    Aes256Gcm,
-    Nonce, // Or `Aes128Gcm`
-    aead::{Aead, AeadCore, Generate, Key, KeyInit},
+    Aes256Gcm, Nonce,
+    aead::{Aead, Generate, Key, KeyInit},
 };
 
 // #[derive(Serialize, Deserialize)]
 #[derive(Clone)]
 pub struct TextChannel {
-    // id: String,
-    // name: Option<String>,
     pub metadata: TextChannelMetaData,
     pub description: Option<String>,
     // creator: String,
     pub messages: Vec<Msg>,
-    // pub messages: Vec<Arc<Msg>>,
     pub members: HashMap<String, MemberProfile>,
 }
 
@@ -64,14 +55,10 @@ pub struct TextChannel {
 #[derive(Clone)]
 pub struct Msg {
     pub id: String,
-    // content: String,
     pub content: Content,
-    // pub content_type: String,
     pub from: String,
     pub timestamp: i64,
-    // pub reactions: Vec<Reaction>,
-    pub reactions: HashMap<String, Vec<String>>, // pub reactions: Vec<ReactionV2>, Ready to add?
-                                                 // pub reactions: Vec<Reaction>,
+    pub reactions: HashMap<String, Vec<String>>,
 }
 
 impl PartialEq for Msg {
@@ -165,25 +152,57 @@ impl XMTP {
         Self { client }
     }
 
-    // pub fn init_stream(&self, app: tauri::AppHandle) {
-    pub fn init_stream(&self) {
-        println!("initializing XMTP stream");
+    pub fn init_stream(
+        &self,
+        stream_tx: UnboundedSender<MessageEvent>,
+        cancelation_token: CancellationToken,
+    ) {
+        println!(
+            "*
+            *
+            *
+            *
+            initializing XMTP stream
+            *
+            *
+            *
+            *
+            *"
+        );
         let consent_states = vec![ConsentState::Allowed, ConsentState::Unknown];
-        let handle =
+        let stream =
             xmtp::stream::messages(&self.client, None, &consent_states).expect("stream failed");
 
-        tokio::task::spawn_blocking(move || {
-            while let Some(event) = handle.recv() {
-                println!("event: {:?}", event);
-                // let convo = self.client.conversation(&event.conversation_id).expect("failed to get convo").expect("no convo with that id");
-                // let payload = serde_json::json!({
-                //     "conversation_id": event.conversation_id,
-                //     "message_id": event.message_id,
-                // });
-
-                // app.emit("xmtp_stream_event", payload)
-                //     .expect("failed to emit iroh event");
+        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+        let blocking_handle = tokio::task::spawn_blocking(move || {
+            while let Some(event) = stream.recv() {
+                // Forward events to our async receiver.
+                // If the async receiver drops this fails and exits.
+                if tx.blocking_send(event).is_err() {
+                    stream.close();
+                    break;
+                }
             }
+        });
+
+        tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    // Instantly aborts even if rx.recv() is waiting indefinitely
+                    _ = cancelation_token.cancelled() => {
+                        println!("Task cancelled gracefully!");
+                        break;
+                    }
+                    // Non-blocking wait handled by the Tokio executor
+                    Some(event) = rx.recv() => {
+                        if stream_tx.send(event).is_err() {
+                            println!("Strem TX send error");
+                        }
+                    }
+                    else => break,
+                }
+            }
+            println!("Worker task finished.");
         });
     }
 
@@ -203,10 +222,6 @@ impl XMTP {
             app_data: None,
             disappearing: None,
         };
-        println!("ANOTHER");
-
-        // let m: Vec<Recipient> = vec![];
-
         let convo = self
             .client
             .group(members, &opts)
@@ -283,25 +298,10 @@ impl XMTP {
 
         let mut messages = vec![];
         for message in convo.messages().expect("failed to get messages") {
-            // let content_type = message.content_type.clone();
-            // let a = message.conversation_id.clone();
-            // println!("convo ID: {a}");
-            // if content_type.is_some() {
-            // let b = content_type.unwrap();
-            // println!("content type: {b}");
-            // }
-
-            // if !message.reactions.is_empty() {
-            // println!("REACTIONS: {:?}", message.reactions);
-            // }
-
-            let msg = self.get_msg(message).expect("failed to decode message");
-            // messages.push(Arc::new(msg));
+            let msg = utilities::get_msg(message).expect("failed to convert message to msg");
             messages.push(msg);
         }
 
-        // let metadata = convo.metadata().expect("failed to get metadata");
-        // println!("creator: {:?}", metadata.creator_inbox_id);
         let metadata = TextChannelMetaData {
             id: convo.id(),
             name: convo.name().unwrap_or_else(|| "*No Name*".to_string()),
@@ -312,7 +312,6 @@ impl XMTP {
             // creator: creator,
             messages: messages,
             members: member_profiles,
-            // messages: convo.messages().expect("failed to get messages"),
             // creator: convo
             //     .metadata()
             //     .expect("failed to get convo metadata")
@@ -321,41 +320,6 @@ impl XMTP {
 
         Ok(text_channel)
         // Ok(convo)
-    }
-
-    pub fn get_msg(&self, message: Message) -> Result<Msg, String> {
-        let msg: Msg;
-        let timestamp = message.sent_at_ns;
-        let content = message.decode().expect("failed to decode message");
-        let mut reactions: HashMap<String, Vec<String>> = HashMap::new();
-        for reaction in message.reactions {
-            println!("REACTION: {:?}", reaction.content);
-            if reactions.get(&reaction.content).is_some() {
-                // let r = reactions.get(&reaction.content).unwrap();
-                if reaction.action == ReactionAction::Added {
-                    reactions
-                        .entry(reaction.content)
-                        .or_insert(Vec::new())
-                        .push(reaction.sender_inbox_id);
-                } else {
-                    if let Some(users) = reactions.get_mut(&reaction.content) {
-                        users.retain(|user| user != &reaction.sender_inbox_id);
-                    }
-                }
-            } else {
-                reactions.insert(reaction.content, vec![reaction.sender_inbox_id]);
-            }
-        }
-        msg = Msg {
-            id: message.id,
-            // content: text,
-            content: content,
-            from: message.sender_inbox_id,
-            // reactions: message.reactions,
-            reactions: reactions,
-            timestamp: timestamp,
-        };
-        Ok(msg)
     }
 
     pub fn get_conversations(&self) -> Result<Vec<Conversation>, String> {
@@ -387,46 +351,29 @@ impl XMTP {
         Ok(convos)
     }
 
-    pub async fn send_text(&self, id: &str, text: String) {
+    pub fn send_text(&self, id: &str, text: String) -> Result<String, String> {
         let convo = self
             .client
             .conversation(id)
             .expect("failed to get convo")
             .expect("convo doesnt exist with id");
         println!("before sending message");
-        let text_clone = text.clone();
-        let result = tokio::task::spawn_blocking(move || convo.send_text(&text)).await;
-        self.update_message_states(text_clone, result);
-    }
 
-    pub fn update_message_states(
-        &self,
-        text: String,
-        result: Result<Result<String, XmtpError>, JoinError>,
-    ) {
-        match result {
-            Ok(Ok(id)) => {
-                let message = self
-                    .client
-                    .message_by_id(&id)
-                    .expect("failed 1")
-                    .expect("failed 2");
-                let msg = self.get_msg(message).expect("failed to get message");
-                match *CURRENT_SCREEN.peek() {
-                    Screen::Server => {
-                        MESSAGES.write().push(msg);
-                    }
-                    Screen::DirectMessages => {
-                        DM_MESSAGES.write().push(msg);
-                    }
-                    Screen::Settings => {}
-                }
-                // MESSAGES.write().push(msg);
-                OUTBOX_MESSAGES.write().retain(|msg| msg != &text);
-            }
-            Ok(Err(e)) => println!("Failed to send message: {e}"),
-            Err(e) => println!("spawn_blocking panicked: {e}"),
-        }
+        let message_id = convo
+            .send_text_optimistic(&text)
+            .expect("failed to send???");
+        convo.publish_messages().expect("failed to publish message");
+        println!(
+            "MESSAGE ID OF SENT MESSAGE? *
+            *
+            *
+            {:?}
+            *
+            *
+            *",
+            message_id
+        );
+        Ok(message_id)
     }
 
     pub async fn send_reaction(
@@ -444,10 +391,6 @@ impl XMTP {
             .expect("failed to get convo")
             .expect("convo doesnt exist with id");
         println!("Sending Reaction!");
-        // let options: ListMessagesOptions {
-
-        // };
-        // let a = convo.list_messages(options);
         let e = emoji.to_string();
         let msg_id = message_id.to_string();
         let result =
@@ -511,10 +454,8 @@ impl XMTP {
             .conversation(id)
             .expect("failed to get convo")
             .expect("convo doesnt exist with id");
-        let text_clone = text.clone();
         let result =
             tokio::task::spawn_blocking(move || convo.send_text_reply(&reference, &text)).await;
-        self.update_message_states(text_clone, result);
     }
 
     // pub async fn send_invite(&self, id: &str, metadata_json: String) {
@@ -559,12 +500,6 @@ impl XMTP {
             let id = result.expect("failed to get result from invite send");
             println!("MESSAGE ID of INVITE: {:?}", id);
         }
-
-        // let convo = self
-        //     .client
-        //     .conversation(id)
-        //     .expect("failed to get convo")
-        //     .expect("convo doesnt exist with id");
     }
 
     pub fn verify_can_message(&self, address: String) -> Result<bool, String> {
@@ -644,6 +579,15 @@ impl XMTP {
         // println!("Address {vitalik_address} resolves to: {ens_name:?}");
         // Some(ens_name)
         // Ok(ens_name)
+    }
+
+    pub fn get_message(&self, id: &str) -> Message {
+        let message = self
+            .client
+            .message_by_id(id)
+            .expect("failed to get message")
+            .expect("no message exists for that id");
+        message
     }
 
     pub async fn add_member(&self, ids: Vec<String>, address: String) {

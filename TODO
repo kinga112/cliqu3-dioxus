@@ -30,3 +30,9 @@
     -> Open via x,y coordinates
 26. DM nav buttons that display last message: last message does not show Reaction types
     -> returns Unknown type if Reaction, deeper issue inside xmtp
+27. Replies fail in DMs?
+28. XMTP stream dies after computer sleeps...
+    -> cancel the current stream task and the init stream again (tokio select with cancelation token)
+    -> Skip XmtpHandle `fix` that did not fix the stream dying after sleep.
+29. Should current channel global signals be Option<TextChannel>? or TextChannel with a default `blank` struct
+30. After sleep reinitalized xmtp stream, messages for current channel should be fetched, to get those missed during sleep.

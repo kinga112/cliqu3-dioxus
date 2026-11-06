@@ -7,6 +7,8 @@ use crate::{
     modules::docs::transfer::{receive_bytes_archive, send_bytes_archive},
 };
 
+const LOADER: Asset = asset!("/assets/icons/loader.svg");
+
 #[component]
 pub fn Archives() -> Element {
     let ticket_key_signal = use_signal(|| String::new());
@@ -14,6 +16,7 @@ pub fn Archives() -> Element {
     let sender_text = use_signal(|| String::new());
     let receiver_text = use_signal(|| String::new());
     let mut send = use_signal(|| true);
+    let sent = use_signal(|| false);
 
     rsx! {
         div {
@@ -56,10 +59,12 @@ pub fn Archives() -> Element {
                             class: "text-sm",
                             "Eventually Add Send Options"
                         }
-                        div {
-                            class: "px-20 h-full text-2xl text-deep-purple-300 font-light break-all",
-                            if *ticket_key_signal.read() != "" {
-                                "Give this Code to your other device: {*ticket_key_signal.read()}"
+                        if *sent.read(){
+                            div {
+                                class: "px-20 h-full text-2xl text-deep-purple-300 font-light break-all",
+                                if *ticket_key_signal.read() != "" {
+                                    "Give this Code to your other device: {*ticket_key_signal.read()}"
+                                }
                             }
                         }
                         div {
@@ -69,9 +74,17 @@ pub fn Archives() -> Element {
                             }
                         }
                         button {
-                            class: "bg-deep-purple-100 text-deep-purple-300 font-semibold rounded p-2",
-                            onclick: move |_| send_archive(ticket_key_signal, sender_text),
-                            "Start Transfer"
+                            class: "flex place-items-center justify-center w-54 bg-deep-purple-300 text-deep-purple-100 font-semibold rounded p-2 disabled:pointer-events-none disabled:bg-off-black-300",
+                            onclick: move |_| send_archive(ticket_key_signal, sender_text, sent),
+                            disabled: *sent.read(),
+                            if *sent.read(){
+                                img {
+                                    class: "w-8 h-8 animate-spin",
+                                    src: LOADER,
+                                }
+                            }else{
+                                "Start Transfer"
+                            }
                         }
                     }
                     div {
@@ -96,7 +109,7 @@ pub fn Archives() -> Element {
                             }
                         }
                         button {
-                            class: "bg-deep-purple-100 text-deep-purple-300 font-semibold rounded p-2",
+                            class: "bg-deep-purple-300 text-deep-purple-100 font-semibold rounded p-2",
                             onclick: move |_| receive_archive(ticket_key_input_signal.read().clone(), receiver_text),
                             "Receive Transfer"
                         }
@@ -107,7 +120,12 @@ pub fn Archives() -> Element {
     }
 }
 
-async fn send_archive(mut ticket_key_signal: Signal<String>, mut sender_text: Signal<String>) {
+async fn send_archive(
+    mut ticket_key_signal: Signal<String>,
+    mut sender_text: Signal<String>,
+    mut sent: Signal<bool>,
+) {
+    sent.set(true);
     sender_text.set("Starting Send Process!".to_string());
     let app_state = APP_STATE.lock().await;
     let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
@@ -150,6 +168,7 @@ async fn send_archive(mut ticket_key_signal: Signal<String>, mut sender_text: Si
             println!("Error creating bytes archive: {:?}", e);
         }
     }
+    sent.set(false);
 }
 
 async fn receive_archive(ticket_key: String, mut receiver_text: Signal<String>) {

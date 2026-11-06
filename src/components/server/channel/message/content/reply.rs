@@ -6,8 +6,13 @@ use xmtp::content::Content;
 use crate::{
     app_state::APP_STATE,
     components::server::channel::message::content::BasicContent,
-    modules::xmtp::xmtp::Msg,
-    states::{server_states::CURRENT_TEXT_CHANNEL, user_states::MemberProfile},
+    modules::xmtp::{utilities, xmtp::Msg},
+    states::{
+        dm_states::CURRENT_DIRECT_MESSAGE,
+        global_states::{CURRENT_SCREEN, Screen},
+        server_states::CURRENT_TEXT_CHANNEL,
+        user_states::MemberProfile,
+    },
 };
 
 const CARROT: Asset = asset!("/assets/icons/carrot.svg");
@@ -30,9 +35,7 @@ pub fn ReplyContent(
                 .message_by_id(&owned_ref)
                 .expect("no message with that reference")
                 .expect("failed to get message");
-            let msg = xmtp
-                .get_msg(referenced_message)
-                .expect("couldnt get Msg from Message");
+            let msg = utilities::get_msg(referenced_message).expect("couldnt get Msg from Message");
             msg_state.set(Some(msg));
         });
     });
@@ -51,10 +54,27 @@ pub fn ReplyContent(
         .unwrap_or_else(|| &empty_msg)
         .clone();
 
-    let text_channel = CURRENT_TEXT_CHANNEL
-        .read()
-        .clone()
-        .expect("text channel is none?");
+    let text_channel;
+    match *CURRENT_SCREEN.read() {
+        Screen::Server => {
+            text_channel = CURRENT_TEXT_CHANNEL
+                .peek()
+                .clone()
+                .expect("text channel is none?");
+        }
+        Screen::DirectMessages => {
+            text_channel = CURRENT_DIRECT_MESSAGE
+                .peek()
+                .clone()
+                .expect("text channel is none?");
+        }
+        Screen::Settings => {
+            text_channel = CURRENT_TEXT_CHANNEL
+                .peek()
+                .clone()
+                .expect("text channel is none?");
+        }
+    }
 
     let temp_member_profile = MemberProfile {
         address: String::new(),
