@@ -87,12 +87,12 @@ pub async fn handle_stream_events(mut stream_rx: UnboundedReceiver<MessageEvent>
         let mut current_convo_id = "".to_string();
         match *CURRENT_SCREEN.peek() {
             Screen::DirectMessages => {
-                while let Some(dm) = CURRENT_DIRECT_MESSAGE.peek().as_ref() {
+                if let Some(dm) = CURRENT_DIRECT_MESSAGE.peek().as_ref() {
                     current_convo_id = dm.metadata.id.clone();
                 }
             }
             Screen::Server => {
-                while let Some(text_channel) = CURRENT_TEXT_CHANNEL.peek().as_ref() {
+                if let Some(text_channel) = CURRENT_TEXT_CHANNEL.peek().as_ref() {
                     current_convo_id = text_channel.metadata.id.clone();
                 }
             }
