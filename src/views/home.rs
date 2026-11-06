@@ -118,8 +118,6 @@ pub async fn handle_stream_events(mut stream_rx: UnboundedReceiver<MessageEvent>
                 Screen::Settings => {}
             }
 
-            println!("Outboxmessages: {:?}", OUTBOX_MESSAGES.peek());
-
             let index = OUTBOX_MESSAGES
                 .peek()
                 .iter()
