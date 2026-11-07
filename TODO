@@ -34,3 +34,32 @@
 29. Should current channel global signals be Option<TextChannel>? or TextChannel with a default `blank` struct
 30. After sleep reinitalized xmtp stream, messages for current channel should be fetched, to get those missed during sleep.
 31. Update README for current install that actually works..
+
+
+
+
+Eventually add this to README, but get check what actually work:
+FOR XMTP BUILD:
+Use Rust Nightly Version June 2026 (whatever older version is needed)
+build in xmtp-ffi
+then run regenerate for xmtp-sys
+
+
+When FFI gets recreated, it goes into target. The block below replaces release xmtp_ffi.lib into xmtp_ffi
+
+$src = "D:\RustCode\xmtp\xmtp-ffi\target\release\xmtp_ffi.lib"
+$dst = "D:\RustCode\xmtp\xmtp-ffi\xmtp_ffi.lib"
+Get-Item $src, $dst | Select-Object FullName, Length, LastWriteTime
+
+FullName                                                 Length LastWriteTime
+--------                                                 ------ -------------
+D:\RustCode\xmtp\xmtp-ffi\target\release\xmtp_ffi.lib 315762226 10/28/2026 10:24:17 PM
+D:\RustCode\xmtp\xmtp-ffi\xmtp_ffi.lib                315597720 10/8/2026 12:12:44 AM
+
+
+PS D:\RustCode\cliqu3-dioxus> Copy-Item $src $dst -Force
+
+If that doesnt work sometimes cargo clean on xmtp-sys doesnt work properly so remove all xmtp-sys files in these locations:
+D:\RustCode\cliqu3-dioxus\target\x86_64-pc-windows-msvc\desktop-dev\deps\libxmtp_sys-*
+D:\RustCode\cliqu3-dioxus\target\x86_64-pc-windows-msvc\desktop-dev\.fingerprint\xmtp-sys-*
+D:\RustCode\cliqu3-dioxus\target\x86_64-pc-windows-msvc\desktop-dev\build\xmtp-sys-*
