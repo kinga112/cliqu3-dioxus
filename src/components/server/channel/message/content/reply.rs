@@ -10,7 +10,7 @@ use crate::{
     states::{
         dm_states::CURRENT_DIRECT_MESSAGE,
         global_states::{CURRENT_SCREEN, Screen},
-        server_states::CURRENT_TEXT_CHANNEL,
+        server_states::{CURRENT_TEXT_CHANNEL, MEMBERS},
         user_states::MemberProfile,
     },
 };
@@ -54,25 +54,20 @@ pub fn ReplyContent(
         .unwrap_or_else(|| &empty_msg)
         .clone();
 
-    let text_channel;
+    let members;
     match *CURRENT_SCREEN.read() {
         Screen::Server => {
-            text_channel = CURRENT_TEXT_CHANNEL
-                .peek()
-                .clone()
-                .expect("text channel is none?");
+            members = MEMBERS.peek().clone();
         }
         Screen::DirectMessages => {
-            text_channel = CURRENT_DIRECT_MESSAGE
+            let text_channel = CURRENT_DIRECT_MESSAGE
                 .peek()
                 .clone()
                 .expect("text channel is none?");
+            members = text_channel.members.clone()
         }
         Screen::Settings => {
-            text_channel = CURRENT_TEXT_CHANNEL
-                .peek()
-                .clone()
-                .expect("text channel is none?");
+            members = MEMBERS.peek().clone();
         }
     }
 
@@ -83,8 +78,7 @@ pub fn ReplyContent(
         description: String::new(),
     };
 
-    let profile = text_channel
-        .members
+    let profile = members
         .get(&msg.from.clone())
         .unwrap_or_else(|| &temp_member_profile);
 

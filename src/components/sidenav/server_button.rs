@@ -1,9 +1,12 @@
 use crate::{
     app_state::APP_STATE,
     modules::docs::db::{Server, ServerMetadata},
+    smart_contract::interact::fetch_profiles,
     states::{
         global_states::{CURRENT_SCREEN, Screen},
-        server_states::{CURRENT_SERVER, CURRENT_TEXT_CHANNEL, MESSAGES},
+        server_states::{
+            CURRENT_SERVER, CURRENT_TEXT_CHANNEL, MEMBERS, MESSAGES, OUTBOX_MESSAGES, REPLY,
+        },
     },
 };
 use dioxus::prelude::*;
@@ -78,11 +81,12 @@ async fn select_server(metadata: ServerMetadata) {
         .await
         .expect("failed to get text channel");
 
-    *CURRENT_TEXT_CHANNEL.write() = Some(text_channel.clone());
-    *MESSAGES.write() = text_channel.messages;
-    // *MESSAGES.write() = text_channel.messages.clone();
-    // *CURRENT_TEXT_CHANNEL.write() = Some(text_channel);
+    fetch_profiles();
+    *OUTBOX_MESSAGES.write() = Vec::new();
+    *REPLY.write() = None;
+    *MESSAGES.write() = text_channel.messages.clone();
+    *MEMBERS.write() = text_channel.members.clone();
+    *CURRENT_TEXT_CHANNEL.write() = Some(text_channel);
     *CURRENT_SCREEN.write() = Screen::Server;
     *CURRENT_SERVER.write() = Some(server);
-    // *CURRENT_TEXT_CHANNEL.write() = server.text_channels[0];
 }

@@ -14,6 +14,7 @@ use crate::{config, modules::xmtp::xmtp::XMTP};
 // use create cache::Moka;
 use crate::modules::docs::db::ServerDocs;
 use anyhow::{Error, Result};
+use dioxus::core::spawn;
 use keyring::Entry;
 use std::path;
 use std::sync::Arc;
@@ -149,31 +150,7 @@ impl AppState {
             .expect("Failed to init docs db or fetch servers");
         *SERVER_LIST.write() = server_list;
         USER.write().inbox_id = inbox_id;
-
-        let mut profile = MemberProfile {
-            address: addy.clone(),
-            name: "".to_string(),
-            avatar: "".to_string(),
-            description: "".to_string(),
-        };
-
-        println!("ADDY: {:?}", addy.clone());
-        let result = smart_contract::interact::get_profile(&addy).await;
-
-        match result {
-            Ok(user_profile) => {
-                println!(
-                    "GOT USER PROFILE IN CHECK SAVED USER: {:?}",
-                    user_profile.clone()
-                );
-                profile = user_profile;
-            }
-            Err(e) => {
-                eprint!("GETTING PROFILE FAILED WITH ERROR: {:?}", e);
-            }
-        }
-
-        USER.write().profile = profile;
+        self.init_user_profile(addy);
         *AUTH_STATE.write() = AuthState::Authenticated;
     }
 
@@ -195,51 +172,25 @@ impl AppState {
         Ok(server_list)
     }
 
-    // pub fn init_user(&mut self, user: String) {
-    //     self.user = Some(user);
-    // }
+    pub fn init_user_profile(&self, address: String) {
+        println!("ADDY: {:?}", address.clone());
+        let profile = MemberProfile {
+            address: address.clone(),
+            name: "".to_string(),
+            avatar: "".to_string(),
+            description: "".to_string(),
+        };
 
-    // pub fn create_wc_uri(&mut self) -> String {
-    //     let mut raw_key = [0u8; 32];
-    //     rand::thread_rng().fill_bytes(&mut raw_key);
-    //     let sym_key_hex = hex::encode(raw_key);
-    //     let mut hasher = Sha256::new();
-    //     hasher.update(&raw_key);
-    //     let pairing_topic_hex = hex::encode(hasher.finalize());
-    //     let now = SystemTime::now()
-    //         .duration_since(UNIX_EPOCH)
-    //         .unwrap()
-    //         .as_secs();
-    //     let expiry = now + 3600;
-    //     let methods = "[wc_sessionPropose]";
-    //     let uri = format!(
-    //         "wc:{}@2?expiryTimestamp={}&relay-protocol=irn&symKey={}&methods={}",
-    //         pairing_topic_hex, expiry, sym_key_hex, methods
-    //     );
-
-    //     uri
-    // }
-
-    // pub async fn init_wallet_connect(&mut self, uri: String, app: tauri::AppHandle) {
-    //     let mut wc = WalletConnectHandler::new(uri);
-
-    //     // use to receive xmtp from spawned tasks
-    //     let (xmtp_tx, xmtp_rx) = oneshot::channel();
-
-    //     wc.init(xmtp_tx).await;
-
-    //     let xmtp = xmtp_rx.await.expect("failed to get xmtp in receiver");
-    //     let id = xmtp.client.inbox_id().expect("couldnt get xmtp inbox id");
-    //     println!("GOT XMTP INBOX ID IN APP STATE: {:?}", id);
-    //     self.xmtp = Some(xmtp);
-
-    //     let _ = self.login();
-
-    //     let payload = serde_json::json!({
-    //         "data": "authenticated"
-    //     });
-
-    //     app.emit("wc_response", payload)
-    //         .expect("failed to emit iroh event");
-    // }
+        USER.write().profile = profile;
+        let address_clone = address.clone();
+        spawn(async move {
+            if let Ok(user_profile) = smart_contract::interact::get_profile(&address_clone).await {
+                println!(
+                    "GOT USER PROFILE IN CHECK SAVED USER: {:?}",
+                    user_profile.clone()
+                );
+                USER.write().profile = user_profile;
+            }
+        });
+    }
 }

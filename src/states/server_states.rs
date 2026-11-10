@@ -3,9 +3,12 @@ use std::{collections::HashMap, sync::Arc};
 use dioxus::prelude::*;
 use xmtp::content::Content;
 
-use crate::modules::{
-    docs::db::{Server, ServerMetadata, VoiceChannel},
-    xmtp::xmtp::{Msg, TextChannel},
+use crate::{
+    modules::{
+        docs::db::{Server, ServerMetadata, VoiceChannel},
+        xmtp::xmtp::{Msg, TextChannel},
+    },
+    states::user_states::MemberProfile,
 };
 
 pub struct ReplyState {
@@ -31,6 +34,8 @@ pub static CURRENT_SERVER: GlobalSignal<Option<Server>> = Signal::global(|| None
 pub static CURRENT_TEXT_CHANNEL: GlobalSignal<Option<TextChannel>> = Signal::global(|| None);
 pub static SERVER_LIST: GlobalSignal<Vec<ServerMetadata>> = Signal::global(Vec::new);
 // pub static MESSAGES: GlobalSignal<Vec<Arc<Msg>>> = Signal::global(Vec::new);
+pub static MEMBERS: GlobalSignal<HashMap<String, MemberProfile>> =
+    Signal::global(|| HashMap::new());
 pub static MESSAGES: GlobalSignal<Vec<Msg>> = Signal::global(Vec::new);
 pub static OUTBOX_MESSAGES: GlobalSignal<Vec<OutboxMessageType>> = Signal::global(Vec::new);
 pub static REPLY: GlobalSignal<Option<ReplyState>> = Signal::global(|| None);

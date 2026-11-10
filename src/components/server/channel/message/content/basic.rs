@@ -10,7 +10,7 @@ use crate::{
     states::{
         dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES},
         global_states::{CURRENT_SCREEN, Screen},
-        server_states::{CURRENT_TEXT_CHANNEL, MESSAGES},
+        server_states::{CURRENT_TEXT_CHANNEL, MEMBERS, MESSAGES},
         user_states::{MemberProfile, USER},
     },
 };
@@ -65,11 +65,12 @@ pub fn BasicContent(children: Element) -> Element {
     let mut member_profiles = HashMap::new();
     match *CURRENT_SCREEN.read() {
         Screen::Server => {
-            let text_channel = CURRENT_TEXT_CHANNEL
-                .read()
-                .clone()
-                .expect("failed to get current text_channel");
-            member_profiles = text_channel.members;
+            // let text_channel = CURRENT_TEXT_CHANNEL
+            //     .read()
+            //     .clone()
+            //     .expect("failed to get current text_channel");
+            // member_profiles = text_channel.members;
+            member_profiles = MEMBERS.peek().clone();
         }
         Screen::DirectMessages => {
             let dm = CURRENT_DIRECT_MESSAGE
@@ -81,13 +82,24 @@ pub fn BasicContent(children: Element) -> Element {
         Screen::Settings => {}
     }
 
-    let user_profile = member_profiles
-        .get(&message.from)
-        .clone()
-        .expect("failed to get user profile from members profile hashmap")
-        .clone();
-
+    // let user_profile = member_profiles
+    //     .get(&message.from)
+    //     .clone()
+    //     .expect("failed to get user profile from members profile hashmap")
+    //     .clone();
     let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
+    // let profile_avatar = user_profile.clone().avatar;
+    let mut user_profile = MemberProfile {
+        address: message.from.clone(),
+        name: "".to_string(),
+        avatar: avatar.to_string(),
+        description: "".to_string(),
+    };
+    if let Some(profile) = member_profiles.get(&message.from) {
+        user_profile = profile.clone();
+    }
+
+    // let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
     let profile_avatar = user_profile.clone().avatar;
 
     if within_five {
@@ -117,7 +129,7 @@ pub fn BasicContent(children: Element) -> Element {
                 img {
                     // should Avatar have rounded-xl??
                     class: "w-14 h-14 bg-deep-purple-100 rounded-xl object-cover shrink-0 select-none pointer-events-none",
-                    src: if profile_avatar != "" {
+                    src: if profile_avatar != "".to_string() {
                         "{profile_avatar}"
                     }else{
                         "{avatar}"

@@ -1,9 +1,15 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 
 use crate::{
     components::server::channel::{BottomBar, MembersList, Messages},
     modules::xmtp::xmtp::TextChannel as TextChannelType,
-    states::server_states::{CURRENT_SERVER, CURRENT_TEXT_CHANNEL},
+    smart_contract,
+    states::{
+        server_states::{CURRENT_SERVER, CURRENT_TEXT_CHANNEL, MEMBERS},
+        user_states::MemberProfile,
+    },
 };
 
 const USERS: Asset = asset!("/assets/icons/users.svg");
@@ -14,6 +20,25 @@ pub fn TextChannel() -> Element {
         .read()
         .clone()
         .expect("text channel is none?");
+
+    // // Add Cliqu3 Profiles to HashMap in Background for quicker load
+    // spawn(async {
+    //     let mut members_map = HashMap::new();
+    //     let members = MEMBERS.peek().clone();
+    //     for (inbox_id, member) in members.iter() {
+    //         match smart_contract::interact::get_profile(&member.address).await {
+    //             Ok(profile) => {
+    //                 members_map.insert(inbox_id.clone(), profile);
+    //             }
+    //             Err(_) => {
+    //                 members_map.insert(inbox_id.clone(), member.clone());
+    //             }
+    //         }
+    //     }
+
+    //     *MEMBERS.write() = members_map;
+    // });
+
     // let text_channel = use_context_provider(|| {
     //     CURRENT_TEXT_CHANNEL
     //         .read()

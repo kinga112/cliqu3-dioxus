@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 
 use crate::{
     app_state::APP_STATE,
     modules::docs::db::TextChannelMetaData,
-    states::server_states::{CURRENT_TEXT_CHANNEL, MESSAGES, OUTBOX_MESSAGES, REPLY},
+    smart_contract::{self, interact::fetch_profiles},
+    states::server_states::{CURRENT_TEXT_CHANNEL, MEMBERS, MESSAGES, OUTBOX_MESSAGES, REPLY},
 };
 
 const HASHTAG: Asset = asset!("/assets/icons/hashtag.svg");
@@ -23,11 +26,7 @@ pub fn TextChannelButton(metadata: TextChannelMetaData) -> Element {
             class: "w-full overflow-y-auto px-2",
             button {
                 class: "flex w-full h-8 place-items-center p-0.5 mb-0.5 rounded-lg",
-                class: if CURRENT_TEXT_CHANNEL
-                    .read().as_ref()
-                    .unwrap()
-                    .metadata
-                    .id == metadata.id {"bg-deep-purple-300"} else {"hover:bg-off-black-400"},
+                class: if current_id == metadata.id {"bg-deep-purple-300"} else {"hover:bg-off-black-400"},
                 onclick: move |_| select_text_channel(metadata.clone().id),
                 div {
                     class: "flex w-full justify-between",
@@ -62,9 +61,10 @@ async fn select_text_channel(id: String) {
         .expect("failed to get text channel");
     println!("SETTING TEXT CHANNEL: {:?}", text_channel.metadata.name);
 
-    *MESSAGES.write() = Vec::new();
+    fetch_profiles();
     *OUTBOX_MESSAGES.write() = Vec::new();
     *REPLY.write() = None;
-    *CURRENT_TEXT_CHANNEL.write() = Some(text_channel.clone());
-    *MESSAGES.write() = text_channel.messages;
+    *MESSAGES.write() = text_channel.messages.clone();
+    *MEMBERS.write() = text_channel.members.clone();
+    *CURRENT_TEXT_CHANNEL.write() = Some(text_channel);
 }

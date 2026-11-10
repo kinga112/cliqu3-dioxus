@@ -123,8 +123,8 @@ pub async fn handle_stream_events(mut stream_rx: UnboundedReceiver<MessageEvent>
                 .iter()
                 .position(|outbox_message| *outbox_message.message_id == event.message_id);
 
-            if index.is_some() {
-                OUTBOX_MESSAGES.write().remove(index.unwrap());
+            if let Some(i) = index {
+                OUTBOX_MESSAGES.write().remove(i);
             }
         }
     }

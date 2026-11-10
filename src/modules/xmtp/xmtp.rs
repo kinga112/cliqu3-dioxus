@@ -233,31 +233,11 @@ impl XMTP {
     // pub fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
     pub async fn get_conversation(&self, id: &str) -> Result<TextChannel, String> {
         // change function name to get_text_channel?
-        // self.create_bytes_archive();
         let convo = self
             .client
             .conversation(id)
             .expect("failed to get convo")
             .expect("convo doesnt exist with id");
-
-        // let a = convo.metadata();
-        // println!(
-        //     "members: {:?}",
-        //     convo.members().expect("failed to get members")
-        // );
-        // let mut members: Vec<String> = vec![];
-        // for member in convo.members().expect("failed to get members") {
-        //     let address = member.account_identifiers[0];
-        //     members.push(address);
-        // }
-        //
-
-        // let members: Vec<String> = convo
-        //     .members()
-        //     .expect("failed to get members")
-        //     .into_iter()
-        //     .filter_map(|m| m.account_identifiers.get(0).map(|id| id.to_string()))
-        //     .collect();
 
         let mut member_profiles: HashMap<String, MemberProfile> = HashMap::new();
         let members = convo.members().expect("failed to get members");
@@ -269,30 +249,12 @@ impl XMTP {
                 .expect("failed to get address");
             println!("HERE IS THE ADDRESS: {:?}", address.clone());
 
-            let mut profile = MemberProfile {
+            let profile = MemberProfile {
                 address: address.clone(),
                 name: "".to_string(),
                 avatar: "".to_string(),
                 description: "".to_string(),
             };
-
-            // let result = smart_contract::interact::get_profile(&address).await;
-            // let handle = Handle::current();
-            // Block the current thread until the async function completes
-            // let result =
-            // handle.block_on(async { smart_contract::interact::get_profile(&address).await });
-
-            let result = smart_contract::interact::get_profile(&address).await;
-
-            match result {
-                Ok(user_profile) => {
-                    profile = user_profile;
-                }
-                Err(e) => {
-                    eprint!("GETTING PROFILE FAILED WITH ERROR: {:?}", e);
-                }
-            }
-
             member_profiles.insert(member.inbox_id, profile);
         }
 
@@ -319,7 +281,6 @@ impl XMTP {
         };
 
         Ok(text_channel)
-        // Ok(convo)
     }
 
     pub fn get_conversations(&self) -> Result<Vec<Conversation>, String> {

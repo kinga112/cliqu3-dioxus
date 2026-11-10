@@ -30,7 +30,7 @@ pub fn WalletConnectModal(open: Signal<bool>) -> Element {
     use_effect(move || {
         if open() {
             spawn(async move {
-                // QR generation (sync, but fine inside the async block)
+                // QR generation
                 let mut raw_key = [0u8; 32];
                 rand::thread_rng().fill_bytes(&mut raw_key);
                 let sym_key_hex = hex::encode(raw_key);
@@ -68,7 +68,7 @@ pub fn WalletConnectModal(open: Signal<bool>) -> Element {
 
                 let mut app_state = APP_STATE.lock().await;
                 app_state.xmtp = Some(xmtp);
-                let login_result = app_state.login();
+                let login_result = app_state.login().await;
                 // state.xmtp = Some(Arc::new(xmtp));
                 // state.write().xmtp = Some(Arc::new(xmtp));
                 *AUTH_STATE.write() = AuthState::Authenticated;

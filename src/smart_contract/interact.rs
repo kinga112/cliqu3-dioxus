@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use alloy::{
     hex::FromHex,
@@ -10,10 +10,14 @@ use alloy::{
     sol,
 };
 use anyhow::Result;
+use dioxus::{core::spawn, signals::ReadableExt};
 use reqwest::{Error, Response};
 use serde::Deserialize;
 
-use crate::{config, states::user_states::MemberProfile};
+use crate::{
+    config,
+    states::{server_states::MEMBERS, user_states::MemberProfile},
+};
 // use crate::xmtp::MemberProfile;
 
 const CONTRACT_ADDRESS: Address = address!("0x525c2aba45f66987217323e8a05ea400c65d06dc");
@@ -278,4 +282,24 @@ pub async fn get_profile(address_string: &str) -> Result<MemberProfile> {
     };
 
     Ok(profile)
+}
+
+// Add Cliqu3 Profiles to HashMap in Dioxus spawn for quicker load
+pub fn fetch_profiles() {
+    spawn(async {
+        let mut members_map = HashMap::new();
+        let members = MEMBERS.peek().clone();
+        for (inbox_id, member) in members.iter() {
+            match get_profile(&member.address).await {
+                Ok(profile) => {
+                    members_map.insert(inbox_id.clone(), profile);
+                }
+                Err(_) => {
+                    members_map.insert(inbox_id.clone(), member.clone());
+                }
+            }
+        }
+
+        *MEMBERS.write() = members_map;
+    });
 }

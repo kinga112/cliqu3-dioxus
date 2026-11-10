@@ -1,20 +1,28 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 
 use crate::{
-    components::user::UserInfo, modules::xmtp::xmtp::TextChannel,
-    states::server_states::CURRENT_TEXT_CHANNEL,
+    components::user::UserInfo,
+    modules::xmtp::xmtp::TextChannel,
+    states::{
+        server_states::{CURRENT_TEXT_CHANNEL, MEMBERS},
+        user_states::MemberProfile,
+    },
 };
 
 #[component]
 pub fn MembersList() -> Element {
     // let text_channel = use_context::<TextChannel>();
-    let text_channel = CURRENT_TEXT_CHANNEL
-        .read()
-        .clone()
-        .expect("text channel is none?");
+    // let text_channel = CURRENT_TEXT_CHANNEL
+    //     .peek()
+    //     .clone()
+    //     .expect("text channel is none?");
+
+    // let members = text_channel.members.clone();
 
     let default_avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
-    let members = text_channel.members.into_iter().map(|(inbox_id, member)| {
+    let members = MEMBERS.read().clone().into_iter().map(|(inbox_id, member)| {
         let mut open_user_info = use_signal(|| false);
         let avatar = member.clone().avatar;
         rsx! {
