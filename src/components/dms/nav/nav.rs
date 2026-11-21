@@ -2,13 +2,17 @@ use dioxus::prelude::*;
 use xmtp::{ConsentState, Conversation, content::Content};
 
 use crate::{
-    app_state::APP_STATE, components::dms::nav::DirectMessageNavButton, states::user_states::USER,
+    components::dms::nav::DirectMessageNavButton,
+    modules::{docs::db::TextChannelMetaData, xmtp::xmtp::XMTP_STATE},
+    state::{app_state::AppState, data_types::server::TextChannelState},
 };
 
 const ADD: Asset = asset!("/assets/icons/add-cropped.svg");
 
 #[component]
 pub fn DirectMessageNav() -> Element {
+    let app_state = use_context::<AppState>();
+    let mut channel_state = use_context::<TextChannelState>();
     let mut dms = use_signal(|| Vec::new());
     let mut show_requests = use_signal(|| false);
 
@@ -31,7 +35,7 @@ pub fn DirectMessageNav() -> Element {
                 .get(0)
                 .map(|id| id.to_string())
                 .expect("failed to get address");
-            if USER.read().clone().profile.address != address {
+            if app_state.user.read().profile.address != address {
                 from = address;
             }
         }
@@ -39,17 +43,27 @@ pub fn DirectMessageNav() -> Element {
             .last_message()
             .expect("couldnt get last message")
             .expect("no last message");
+        let a = last_message
+            .clone()
+            .content_type
+            .expect("could not get content type");
+        println!("LAST MESSAGE CONTENT TYPE: {:?}", a);
         let content = match last_message
             .decode()
             .expect("failed to decode last message")
         {
-            Content::Text(text) => text,
+            Content::Text(text) => format!("TEXT: {}", text),
             Content::Reply(reply) => {
                 let content_string = String::from_utf8(reply.content.content)
                     .expect("failed to convert reply content to string");
                 content_string
             }
-            Content::Reaction(reaction) => reaction.content,
+            Content::Reaction(reaction) => {
+                println!("EMOJI REACTION CONTENT LAST MESSAGE");
+                // reaction.content
+                // "{reaction.content}".to_string()
+                format!("Reaction: {}", reaction.content)
+            }
             Content::Attachment(attachment) => {
                 format!("Attachment: {}", attachment.mime_type)
             }
@@ -57,8 +71,9 @@ pub fn DirectMessageNav() -> Element {
             Content::RemoteAttachment(remote_attachment) => "remote attachment".to_string(),
             Content::ReadReceipt => "read receipt".to_string(),
             Content::Unknown { content_type, raw } => {
-                println!("CONTENT TYPE: {:?}", content_type);
-                format!("{}", content_type)
+                println!("CONTENT TYPE IN DM NAV: {:?}", content_type);
+                println!("RAW: {:?}", raw.clone());
+                format!("Reaction received")
             }
         };
         rsx! { DirectMessageNavButton{id: convo.id(), from: from, message: content}}
@@ -75,6 +90,7 @@ pub fn DirectMessageNav() -> Element {
                 }
                 button {
                     class: "bg-off-black-400 hover:bg-off-black-300 p-2 rounded-md",
+                    onclick: move |_| *channel_state.metadata.write() = TextChannelMetaData {id: String::new(), name: String::new()},
                     img {
                         src: ADD,
                         width: 15,
@@ -123,8 +139,25 @@ pub fn DirectMessageNav() -> Element {
 
 async fn get_messages(consent_state: ConsentState) -> Result<Vec<Conversation>, String> {
     println!("RUNNING GET DMS");
-    let app_state = APP_STATE.lock().await;
-    let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    // let app_state = APP_STATE.lock().await;
+    // let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 2?");
     let dms = xmtp.get_dms(consent_state).expect("failed to get dms");
     Ok(dms)
 }
+
+// async fn get_messages(consent_state: ConsentState) -> Vec<Conversation> {
+//     println!("RUNNING GET DMS");
+//     let app_state = APP_STATE.lock().await;
+//     let xmtp_handler = app_state.xmtp_handler.as_ref().expect("xmtp is none??");
+//     // let dms = xmtp.get_dms(consent_state).expect("failed to get dms");
+//     let (output_tx, output_rx) = crossbeam::channel::unbounded::<Vec<Conversation>>();
+//     let send_result = xmtp_handler.cmd_tx.send(XmtpCommand::GetDMs { output_tx });
+//     let output_result = output_rx.recv();
+//     match output_result {
+//         Ok(dms) => dms,
+//         Err(e) => Vec::new(),
+//     }
+//     // Ok(dms)
+// }

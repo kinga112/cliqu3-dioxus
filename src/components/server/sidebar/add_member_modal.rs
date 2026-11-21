@@ -1,16 +1,7 @@
 use dioxus::prelude::*;
 use xmtp::Recipient;
 
-use crate::{
-    app_state::APP_STATE,
-    components::Modal,
-    modules::docs::db::Server,
-    states::{
-        global_states::OPEN_CREATE_SERVER_MODAL,
-        server_states::{CURRENT_SERVER, OPEN_ADD_MEMBER_MODAL, SERVER_LIST},
-        user_states::USER,
-    },
-};
+use crate::{components::Modal, state::data_types::server::ServerState};
 // const LOADER: Asset = asset!("/assets/loader.svg"); // adjust path to your actual loader asset
 
 const TOGGLE: &'static str = "group peer bg-deep-purple-100 rounded-full
@@ -21,37 +12,44 @@ const TOGGLE: &'static str = "group peer bg-deep-purple-100 rounded-full
         after:items-center peer-checked:after:translate-x-4 peer-hover:after:scale-95";
 
 #[component]
-pub fn AddMemberModal() -> Element {
-    // let server = use_context::<Server>();
-    let server = CURRENT_SERVER.read().clone().expect("no current server??");
+pub fn AddMemberModal(mut open_signal: Signal<bool>) -> Element {
+    let server_state = use_context::<ServerState>();
+    // let server = CURRENT_SERVER.read().clone().expect("no current server??");
     let mut address_text = use_signal(|| String::new());
     let loading = use_signal(|| false);
 
-    let text_channels_list = server.text_channels.into_iter().map(|metadata| {
-        rsx! {
-            div {
-                class: "flex justify-between p-2 border-b-1 border-deep-purple-200",
-                div {
-                    "{metadata.name}"
-                }
-                label {
-                    class:"relative inline-flex items-center cursor-pointer",
-                    input {
-                        type:"checkbox",
-                        class: "sr-only peer",
-                        value:"",
-                    }
+    let text_channels_list =
+        server_state
+            .text_channels
+            .read()
+            .clone()
+            .into_iter()
+            .map(|metadata| {
+                rsx! {
                     div {
-                        class: TOGGLE
+                        class: "flex justify-between p-2 border-b-1 border-deep-purple-200",
+                        div {
+                            "{metadata.name}"
+                        }
+                        label {
+                            class:"relative inline-flex items-center cursor-pointer",
+                            input {
+                                type:"checkbox",
+                                class: "sr-only peer",
+                                value:"",
+                            }
+                            div {
+                                class: TOGGLE
+                            }
+                        }
                     }
                 }
-            }
-        }
-    });
+            });
 
     rsx! {
         Modal {
-            open: OPEN_ADD_MEMBER_MODAL.signal(),
+            // open: OPEN_ADD_MEMBER_MODAL.signal(),
+            open: open_signal,
             div {
                 class: "space-y-1",
                 div {
@@ -81,7 +79,8 @@ pub fn AddMemberModal() -> Element {
                     }
                     button {
                         class: "bg-slate-900 p-2 w-20 rounded-md p-2 w-20 border-2 border-slate-900 hover:border-red-800",
-                        onclick: move |_| *OPEN_ADD_MEMBER_MODAL.write() = false,
+                        // onclick: move |_| *OPEN_ADD_MEMBER_MODAL.write() = false,
+                        onclick: move |_| *open_signal.write() = false,
                         "Cancel"
                     }
                 }

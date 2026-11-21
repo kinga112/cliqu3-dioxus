@@ -1,19 +1,27 @@
 use dioxus::prelude::*;
 
-use crate::states::server_states::OUTBOX_MESSAGES;
+use crate::state::data_types::server::TextChannelState;
+
+const LOADER: Asset = asset!("/assets/icons/loader2.svg");
 
 #[component]
 pub fn OutboxBanner() -> Element {
-    let clone = OUTBOX_MESSAGES.read().clone();
-    let outbox_messages = clone.iter().enumerate().map(|(index, outbox_message)| {
-        rsx! {
-            OutboxMessage { index: index, text: outbox_message.message_text.clone() }
-        }
-    });
-
-    if OUTBOX_MESSAGES.read().is_empty() {
+    let channel_state = use_context::<TextChannelState>();
+    if channel_state.outbox_messages.read().is_empty() {
         return rsx! {};
     }
+
+    let outbox_messages = channel_state
+        .outbox_messages
+        .read()
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(index, outbox_message)| {
+            rsx! {
+                OutboxMessage { index: index, text: outbox_message.message_text.clone() }
+            }
+        });
 
     rsx! {
         div {
@@ -41,8 +49,9 @@ pub fn OutboxMessage(index: usize, text: String) -> Element {
                     class: "truncate",
                     "{text}"
                 }
-                div {
-                    class: "bg-red-500 w-3 h-3 animate-spin"
+                img {
+                    class: "w-8 h-8 animate-spin",
+                    src: LOADER,
                 }
             }
         }

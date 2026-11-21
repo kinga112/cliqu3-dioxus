@@ -1,12 +1,9 @@
 use crate::{
-    app_state::APP_STATE,
     components::server::sidebar::{
         AddChannelModal, AddMemberModal, TextChannelButton, VoiceChannelButton,
     },
     modules::docs::db::{Server, TextChannelMetaData},
-    states::server_states::{
-        AddChannelModalState, CURRENT_SERVER, OPEN_ADD_CHANNEL_MODAL, OPEN_ADD_MEMBER_MODAL,
-    },
+    state::data_types::server::{AddChannelModalState, ServerState},
 };
 use dioxus::prelude::*;
 use prost::Message;
@@ -17,24 +14,39 @@ const CARROT: Asset = asset!("/assets/icons/carrot.svg");
 
 #[component]
 pub fn SideBar() -> Element {
-    let server = CURRENT_SERVER.read().clone().expect("no current server??");
+    // let server = CURRENT_SERVER.read().clone().expect("no current server??");
+    let server_state = use_context::<ServerState>();
     // let server = use_context::<Server>();
-    println!("SERVER ID INSIDE SIDEBAR: {:?}", server.metadata.id);
+    println!(
+        "SERVER ID INSIDE SIDEBAR: {:?}",
+        server_state.metadata.read().id
+    );
     // let mut open_add_text_channel_modal = use_signal(|| false);
     let mut open_server_options_menu = use_signal(|| false);
+    let mut open_add_member_modal = use_signal(|| false);
+    let mut open_add_channel_modal = use_signal(|| AddChannelModalState::Closed);
     // let text_channel = server_state.read().text_channels;
     // let server_clone = server.clone();
     // let text_channel_id_clone = server.text_channels[0].id.clone();
-    let text_channels = server.text_channels.into_iter().map(|metadata| {
-        rsx! {TextChannelButton {metadata: metadata}}
-    });
-
-    let voice_channels = server
-        .voice_channels
+    let text_channels = server_state
+        .text_channels
+        .read()
+        .clone()
         .into_iter()
-        .map(|(id, voice_channel)| {
-            rsx! {VoiceChannelButton {name: voice_channel.name}}
+        .map(|metadata| {
+            rsx! {TextChannelButton {metadata: metadata}}
         });
+
+    let voice_channels =
+        server_state
+            .voice_channels
+            .read()
+            .clone()
+            .into_iter()
+            .map(|(id, voice_channel)| {
+                // rsx! {VoiceChannelButton {name: voice_channel.name}}
+                rsx! {VoiceChannelButton {key: "{id}", voice_channel: voice_channel}}
+            });
 
     rsx! {
         div {
@@ -44,7 +56,7 @@ pub fn SideBar() -> Element {
                 button {
                     class: "flex justify-between bg-off-black-600 w-full h-14 z-20 absolute border-b border-off-black-700 place-items-center px-2 shadow-md shadow-off-black-700 text-xl font-light",
                     onclick: move |_| open_server_options_menu.toggle(),
-                    "{server.metadata.name}"
+                    "{server_state.metadata.read().name}"
                 }
                 div {
                     class: "flex flex-col absolute top-0 w-full gap-2 bg-off-black-600 rounded-b-lg p-2 transition-transform duration-300 ease-in-out shadow-md shadow-off-black-700",
@@ -52,7 +64,7 @@ pub fn SideBar() -> Element {
                     button {
                         class: "w-full h-10 bg-off-black-300 rounded hover:bg-off-black-400",
                         // onclick: move |_| add_member(text_channel_id_clone.clone(), server_clone.clone()),
-                        onclick: move |_| *OPEN_ADD_MEMBER_MODAL.write() = true,
+                        onclick: move |_| *open_add_member_modal.write() = true,
                         "Add Members"
                     }
                     button {
@@ -79,7 +91,7 @@ pub fn SideBar() -> Element {
                     }
                     button {
                         class: "hover:bg-off-black-300 p-0.5 h-5 w-5 rounded group-hover:underline pointer-events-auto",
-                        onclick: move |_| *OPEN_ADD_CHANNEL_MODAL.write() = AddChannelModalState::Text,
+                        onclick: move |_| *open_add_channel_modal.write() = AddChannelModalState::Text,
                         img {
                             class: "w-full h-full",
                             src: ADD,
@@ -109,7 +121,7 @@ pub fn SideBar() -> Element {
                     }
                     button {
                         class: "hover:bg-off-black-300 p-0.5 h-5 w-5 rounded group-hover:underline pointer-events-auto",
-                        onclick: move |_| *OPEN_ADD_CHANNEL_MODAL.write() = AddChannelModalState::Voice,
+                        onclick: move |_| *open_add_channel_modal.write() = AddChannelModalState::Voice,
                         img {
                             class: "w-full h-full",
                             src: ADD,
@@ -122,16 +134,16 @@ pub fn SideBar() -> Element {
                 }
             }
         }
-        AddMemberModal{}
-        AddChannelModal{}
+        AddMemberModal{open_signal: open_add_member_modal}
+        AddChannelModal{open_signal: open_add_channel_modal}
     }
 }
 
 async fn add_member(id: String, server: Server) {
     // let text_channel_id = text_channels[0].id.clone();
     println!("SENDING REAL INVITE TEST");
-    let app_state = APP_STATE.lock().await;
-    let server_json = serde_json::to_string(&server).expect("failed to serialize server to json");
+    // let app_state = APP_STATE.lock().await;
+    // let server_json = serde_json::to_string(&server).expect("failed to serialize server to json");
     // let _ = app_state
     //     .xmtp
     //     .as_ref()

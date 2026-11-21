@@ -3,30 +3,22 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 
 use crate::{
-    app_state::APP_STATE,
-    modules::docs::db::TextChannelMetaData,
-    smart_contract::{self, interact::fetch_profiles},
-    states::server_states::{CURRENT_TEXT_CHANNEL, MEMBERS, MESSAGES, OUTBOX_MESSAGES, REPLY},
+    modules::{docs::db::TextChannelMetaData, xmtp::xmtp::XMTP_STATE},
+    smart_contract::interact::fetch_profiles,
+    state::data_types::server::TextChannelState,
 };
 
 const HASHTAG: Asset = asset!("/assets/icons/hashtag.svg");
 
 #[component]
 pub fn TextChannelButton(metadata: TextChannelMetaData) -> Element {
-    let current_id = CURRENT_TEXT_CHANNEL
-        .read()
-        .clone()
-        .expect("failed to get current text channel")
-        .metadata
-        .id;
-    println!("current text channel id: {:?}", current_id.clone());
-    println!("this text channel id: {:?}", metadata.clone().id);
+    let channel_state = use_context::<TextChannelState>();
     rsx! {
         div {
             class: "w-full overflow-y-auto px-2",
             button {
                 class: "flex w-full h-8 place-items-center p-0.5 mb-0.5 rounded-lg",
-                class: if current_id == metadata.id {"bg-deep-purple-300"} else {"hover:bg-off-black-400"},
+                class: if channel_state.metadata.read().id == metadata.id {"bg-deep-purple-300"} else {"hover:bg-off-black-400"},
                 onclick: move |_| select_text_channel(metadata.clone().id),
                 div {
                     class: "flex w-full justify-between",
@@ -50,11 +42,9 @@ pub fn TextChannelButton(metadata: TextChannelMetaData) -> Element {
 
 async fn select_text_channel(id: String) {
     println!("Setting text channel");
-    let app_state = APP_STATE.lock().await;
-    let xmtp = app_state
-        .xmtp
-        .as_ref()
-        .expect("xmtp client not initialized?");
+    let mut channel_state = use_context::<TextChannelState>();
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 8?");
     let text_channel = xmtp
         .get_conversation(&id)
         .await
@@ -62,9 +52,9 @@ async fn select_text_channel(id: String) {
     println!("SETTING TEXT CHANNEL: {:?}", text_channel.metadata.name);
 
     fetch_profiles();
-    *OUTBOX_MESSAGES.write() = Vec::new();
-    *REPLY.write() = None;
-    *MESSAGES.write() = text_channel.messages.clone();
-    *MEMBERS.write() = text_channel.members.clone();
-    *CURRENT_TEXT_CHANNEL.write() = Some(text_channel);
+    *channel_state.outbox_messages.write() = Vec::new();
+    *channel_state.reply.write() = None;
+    *channel_state.messages.write() = text_channel.messages.clone();
+    *channel_state.members.write() = text_channel.members.clone();
+    *channel_state.metadata.write() = text_channel.metadata.clone();
 }

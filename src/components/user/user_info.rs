@@ -1,46 +1,41 @@
 use dioxus::prelude::*;
 
-use crate::states::user_states::MemberProfile;
+use crate::state::data_types::user::MemberProfile;
 
 #[component]
-pub fn UserInfo(profile: MemberProfile, open: Option<Signal<bool>>) -> Element {
+// pub fn UserInfo(profile: MemberProfile, open: Option<Signal<bool>>) -> Element {
+pub fn UserInfo(profile: MemberProfile, open: Signal<bool>, can_close: bool) -> Element {
     let mut menu_rect = use_signal(|| None::<(f64, f64, f64, f64)>);
 
-    if open.is_some() {
-        use_effect(move || {
-            if open.unwrap()() {
-                spawn(async move {
-                    let mut eval = document::eval(
-                        r#"
-                        function handler(e) {
-                            dioxus.send([e.clientX, e.clientY]);
-                        }
-                        window.addEventListener('mousedown', handler, true);
-                        "#,
-                    );
-                    loop {
-                        match eval.recv::<(f64, f64)>().await {
-                            Ok((x, y)) => {
-                                if let Some((mx, my, mw, mh)) = menu_rect() {
-                                    let inside = x >= mx && x <= mx + mw && y >= my && y <= my + mh;
-                                    if !inside {
-                                        open.unwrap().set(false);
-                                        break;
-                                    }
-                                } else {
-                                    break;
-                                }
+    if *open.read() {
+        spawn(async move {
+            let mut eval = document::eval(
+                r#"
+                    function handler(e) {
+                        dioxus.send([e.clientX, e.clientY]);
+                    }
+                    window.addEventListener('mousedown', handler, true);
+                    "#,
+            );
+            loop {
+                match eval.recv::<(f64, f64)>().await {
+                    Ok((x, y)) => {
+                        if let Some((mx, my, mw, mh)) = menu_rect() {
+                            let inside = x >= mx && x <= mx + mw && y >= my && y <= my + mh;
+                            if !inside && can_close {
+                                open.set(false);
+                                break;
                             }
-                            Err(_) => break,
+                        } else {
+                            break;
                         }
                     }
-                });
+                    Err(_) => break,
+                }
             }
         });
-
-        if !open.unwrap()() {
-            return rsx! {};
-        }
+    } else {
+        return rsx! {};
     }
 
     let avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";

@@ -10,13 +10,17 @@ use alloy::{
     sol,
 };
 use anyhow::Result;
-use dioxus::{core::spawn, signals::ReadableExt};
+use dioxus::{
+    core::spawn,
+    hooks::use_context,
+    signals::{ReadableExt, WritableExt},
+};
 use reqwest::{Error, Response};
 use serde::Deserialize;
 
 use crate::{
     config,
-    states::{server_states::MEMBERS, user_states::MemberProfile},
+    state::data_types::{server::TextChannelState, user::MemberProfile},
 };
 // use crate::xmtp::MemberProfile;
 
@@ -284,11 +288,12 @@ pub async fn get_profile(address_string: &str) -> Result<MemberProfile> {
     Ok(profile)
 }
 
-// Add Cliqu3 Profiles to HashMap in Dioxus spawn for quicker load
+// Add Cliqu3 Profiles to Channel State HashMap in Dioxus spawn for quicker load
 pub fn fetch_profiles() {
     spawn(async {
+        let mut channel_state = use_context::<TextChannelState>();
         let mut members_map = HashMap::new();
-        let members = MEMBERS.peek().clone();
+        let members = channel_state.members.peek().clone();
         for (inbox_id, member) in members.iter() {
             match get_profile(&member.address).await {
                 Ok(profile) => {
@@ -300,6 +305,7 @@ pub fn fetch_profiles() {
             }
         }
 
-        *MEMBERS.write() = members_map;
+        // *MEMBERS.write() = members_map;
+        *channel_state.members.write() = members_map;
     });
 }

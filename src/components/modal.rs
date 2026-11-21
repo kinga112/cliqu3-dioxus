@@ -1,26 +1,4 @@
-use crate::app_state::APP_STATE;
-use crate::modules::walletconnect::walletconnect::WalletConnectHandler;
-use crate::states::user_states::AUTH_STATE;
-use crate::states::user_states::AuthState;
-use crate::states::user_states::USER;
-
 use dioxus::prelude::*;
-use rand::RngCore;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::oneshot;
-use {
-    alloy::hex,
-    sha2::{Digest, Sha256},
-};
-
-use qrcode_generator::{
-    Renderer,
-    qr::{Encoder, ErrorCorrection},
-};
-
-use base64::{Engine, engine::general_purpose::STANDARD};
-
-// const LOADER: Asset = asset!("/assets/loader.svg"); // adjust path to your actual loader asset
 
 #[component]
 pub fn Modal(open: Signal<bool>, children: Element) -> Element {

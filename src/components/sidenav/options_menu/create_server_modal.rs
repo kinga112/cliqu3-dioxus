@@ -2,16 +2,14 @@ use dioxus::prelude::*;
 use xmtp::Recipient;
 
 use crate::{
-    app_state::APP_STATE,
     components::Modal,
-    states::{
-        global_states::OPEN_CREATE_SERVER_MODAL, server_states::SERVER_LIST, user_states::USER,
-    },
+    modules::{docs::db::DB, xmtp::xmtp::XMTP_STATE},
+    state::app_state::AppState,
 };
 // const LOADER: Asset = asset!("/assets/loader.svg"); // adjust path to your actual loader asset
 
 #[component]
-pub fn CreateServerModal() -> Element {
+pub fn CreateServerModal(open_modal: Signal<bool>) -> Element {
     let mut name_text = use_signal(|| String::new());
     let mut description_text = use_signal(|| String::new());
     let mut image_text = use_signal(|| String::new());
@@ -19,7 +17,7 @@ pub fn CreateServerModal() -> Element {
 
     rsx! {
         Modal {
-            open: OPEN_CREATE_SERVER_MODAL.signal(),
+            open: open_modal,
             div {
                 class: "font-light text-4xl",
                 "Create New Server"
@@ -66,7 +64,7 @@ pub fn CreateServerModal() -> Element {
                 class: "flex gap-2 pt-2",
                 button {
                     class: "bg-deep-purple-400 text-deep-purple-100 p-2 w-32 rounded-md duration-100 border-2 border-deep-purple-400 hover:border-deep-purple-100",
-                    onclick: move |_| create_server(name_text, description_text, image_text, loading),
+                    onclick: move |_| create_server(name_text, description_text, image_text, loading, open_modal),
                     "Create Server"
                 }
                 button {
@@ -161,55 +159,66 @@ async fn create_server(
     description_text: Signal<String>,
     image_text: Signal<String>,
     mut loading: Signal<bool>,
+    mut open_modal: Signal<bool>,
 ) {
+    let mut app_state = use_context::<AppState>();
     loading.set(true);
     let name = name_text.read().clone();
     let description = description_text.read().clone();
     let image = image_text.read().clone();
     if name != "".to_string() {
-        let address = USER
+        let address = app_state
+            .user
             .read()
             .profile
             // .as_ref()
             // .expect("No User Profile")
             .address
             .clone();
-        let app_state = APP_STATE.lock().await;
-        if app_state.xmtp.is_some() {
-            let db_arc = app_state
-                .db
-                .as_ref()
-                .expect("Database no initialized")
-                .clone();
-            let db = db_arc.lock().await;
-            let metadata = db
-                .create_server(&name, &image, &address)
-                .await
-                .map_err(|e| format!("could not create server: {e}"))
-                .expect("");
-            let members: Vec<Recipient> = vec![Recipient::Address(address)];
-            let new_group_id = app_state
-                .xmtp
-                .as_ref()
-                .expect("failed to get xmtp instance")
-                .create_group(&members, Some("general".to_string()), None, None)
-                .expect("failed to create new group");
-            match db
-                .add_text_channel(&metadata.id, "general", &new_group_id)
-                .await
-            {
-                Ok(result) => {
-                    println!("Created server!!!");
-                    SERVER_LIST.write().insert(0, metadata);
-                    // let server_list =
-                    // SERVER_LIST.write()
-                }
-                Err(e) => {
-                    println!("failed to create server");
-                }
+        // let app_state = APP_STATE.lock().await;
+        let xmtp_opt = XMTP_STATE.lock().await;
+        let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here?");
+        // if app_state.xmtp.is_some() {
+        //
+        // let db_arc = app_state
+        //     .db
+        //     .as_ref()
+        //     .expect("Database no initialized")
+        //     .clone();
+        // let db = db_arc.lock().await;
+        let db = DB
+            .read()
+            .expect("failed to read DB")
+            .clone()
+            .expect("failed to get db");
+        let metadata = db
+            .create_server(&name, &image, &address)
+            .await
+            .map_err(|e| format!("could not create server: {e}"))
+            .expect("");
+        let members: Vec<Recipient> = vec![Recipient::Address(address)];
+        let new_group_id = xmtp
+            // .as_ref()
+            // .expect("failed to get xmtp instance")
+            .create_group(&members, Some("general".to_string()), None, None)
+            .expect("failed to create new group");
+        match db
+            .add_text_channel(&metadata.id, "general", &new_group_id)
+            .await
+        {
+            Ok(result) => {
+                println!("Created server!!!");
+                // SERVER_LIST.write().insert(0, metadata);
+                app_state.servers.write().insert(0, metadata);
+                // let server_list =
+                // SERVER_LIST.write()
+            }
+            Err(e) => {
+                println!("failed to create server");
             }
         }
+        // }
         loading.set(false);
-        *OPEN_CREATE_SERVER_MODAL.write() = false;
+        *open_modal.write() = false;
     }
 }

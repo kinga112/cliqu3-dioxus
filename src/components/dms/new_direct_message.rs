@@ -1,11 +1,7 @@
 use dioxus::prelude::*;
 use xmtp::Recipient;
 
-use crate::{
-    app_state::APP_STATE,
-    components::server::channel::{BottomBar, Messages},
-    states::dm_states::CURRENT_DIRECT_MESSAGE,
-};
+use crate::{modules::xmtp::xmtp::XMTP_STATE, state::data_types::server::TextChannelState};
 
 #[component]
 pub fn NewDirectMessage() -> Element {
@@ -29,7 +25,6 @@ pub fn NewDirectMessage() -> Element {
                             }
                         }
                     }
-                    // onchange: ,
                 }
             }
             div {
@@ -42,15 +37,22 @@ pub fn NewDirectMessage() -> Element {
 }
 
 async fn create_new_dm(address: String) {
+    let mut channel_state = use_context::<TextChannelState>();
     println!("Creating new id with address: {:?}", address.clone());
-    let app_state = APP_STATE.lock().await;
-    let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 4?");
     let recipient = Recipient::Address(address);
     let convo = xmtp.client.dm(&recipient).expect("failed to create new dm");
     let dm = xmtp
         .get_conversation(&convo.id())
         .await
         .expect("failed to get dm text channel");
-    *CURRENT_DIRECT_MESSAGE.write() = Some(dm);
+    // *CURRENT_DIRECT_MESSAGE.write() = Some(dm);
+    // *CURRENT_DIRECT_MESSAGE.write() = Some(dm);
+    *channel_state.outbox_messages.write() = Vec::new();
+    *channel_state.reply.write() = None;
+    *channel_state.messages.write() = dm.messages.clone();
+    *channel_state.members.write() = dm.members.clone();
+    *channel_state.metadata.write() = dm.metadata.clone();
     // let a = self.client.dm
 }

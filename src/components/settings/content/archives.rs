@@ -2,9 +2,9 @@ use alloy::hex;
 use dioxus::prelude::*;
 use iroh_live::media::AudioBackend;
 
-use crate::{
-    app_state::APP_STATE,
-    modules::docs::transfer::{receive_bytes_archive, send_bytes_archive},
+use crate::modules::{
+    docs::transfer::{receive_bytes_archive, send_bytes_archive},
+    xmtp::xmtp::XMTP_STATE,
 };
 
 const LOADER: Asset = asset!("/assets/icons/loader.svg");
@@ -127,8 +127,10 @@ async fn send_archive(
 ) {
     sent.set(true);
     sender_text.set("Starting Send Process!".to_string());
-    let app_state = APP_STATE.lock().await;
-    let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    // let app_state = APP_STATE.lock().await;
+    // let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 9?");
     let (result_bytes, key) = xmtp.create_bytes_archive();
     // key_signal.set(key);
     // let key_str = str::from_utf8(&key).expect("Failed to get key as string");
@@ -198,8 +200,10 @@ async fn receive_archive(ticket_key: String, mut receiver_text: Signal<String>) 
             return;
         }
     };
-    let app_state = APP_STATE.lock().await;
-    let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    // let app_state = APP_STATE.lock().await;
+    // let xmtp = app_state.xmtp.as_ref().expect("xmtp is none??");
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here? 10");
     let result = xmtp.import_bytes_archive(&data, &key);
     match result {
         Ok(()) => {

@@ -3,29 +3,33 @@ use dioxus::prelude::*;
 use crate::{
     components::user::UserInfo,
     smart_contract,
-    states::user_states::{MemberProfile, USER},
+    state::{app_state::AppState, data_types::user::MemberProfile},
 };
 
 #[component]
 pub fn UpdateProfile() -> Element {
+    let app_state = use_context::<AppState>();
     let gas_estimate = use_signal(|| String::new());
     let mut username = use_signal(|| String::new());
     let mut bio = use_signal(|| String::new());
     let mut avatar = use_signal(|| String::new());
 
-    let user_profile = USER.read().clone().profile;
-    let mut profile_username = user_profile.name;
-    if *username.read() != "" {
-        profile_username = username.read().clone();
-    }
-    let mut profile_bio = user_profile.description;
-    if *bio.read() != "" {
-        profile_bio = bio.read().clone();
-    }
-    let mut profile_avatar = user_profile.avatar;
-    if *avatar.read() != "" {
-        profile_avatar = avatar.read().clone();
-    }
+    let user_profile = app_state.user.read().clone().profile;
+    let profile_username = if *username.read() != "" {
+        username.read().clone()
+    } else {
+        user_profile.name
+    };
+    let profile_bio = if *bio.read() != "" {
+        bio.peek().clone()
+    } else {
+        user_profile.description
+    };
+    let profile_avatar = if *avatar.read() != "" {
+        avatar.read().clone()
+    } else {
+        user_profile.avatar
+    };
 
     let tmp_profile = MemberProfile {
         address: user_profile.address,
@@ -67,7 +71,7 @@ pub fn UpdateProfile() -> Element {
                     "Gas Estimate: ${&gas_estimate.read()[0..8]} USD"
                 }
             }
-            UserInfo{profile: tmp_profile}
+            UserInfo{profile: tmp_profile, open: Signal::new(true), can_close: false}
             button {
                 class: "w-fit p-2 h-12 bg-deep-purple-300 rounded",
                 onclick: move |_| update_profile(username.read().clone(), bio.read().clone(), avatar.read().clone()),

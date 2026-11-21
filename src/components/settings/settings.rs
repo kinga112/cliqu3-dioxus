@@ -1,20 +1,29 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::settings::{
-        SettingsNav,
-        content::{Archives, Audio, UpdateProfile},
-    },
-    states::settings_states::{SETTINGS_CONTENT, SettingsContent},
+use crate::components::settings::{
+    SettingsNav,
+    content::{Archives, Audio, UpdateProfile},
 };
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum SettingsContent {
+    UpdateProfile,
+    Audio,
+    Archives,
+    TestItem1,
+    TestItem2,
+    TestItem3,
+}
 
 #[component]
 pub fn Settings() -> Element {
+    let settings_content = use_signal(|| SettingsContent::UpdateProfile);
+    let settings_content_state = use_context_provider(|| settings_content);
     rsx! {
         div {
             class: "flex w-full h-full ",
             SettingsNav{}
-            match *SETTINGS_CONTENT.read() {
+            match *settings_content_state.read() {
                 SettingsContent::UpdateProfile => {rsx!{UpdateProfile{}}}
                 SettingsContent::Audio => {rsx! {Audio{}}}
                 SettingsContent::Archives => {rsx! {Archives{}}}

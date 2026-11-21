@@ -1,7 +1,7 @@
 use crate::modules::walletconnect::signer::WalletConnectXmtpSigner;
 use crate::modules::walletconnect::{connection::Handler, methods};
 // use crate::xmtp::XMTP;
-use crate::modules::xmtp::xmtp::XMTP;
+use crate::modules::xmtp::xmtp::{XMTP_STATE, XmtpHandler};
 use reown_relay_client::{
     ConnectionOptions,
     websocket::{Client, PublishedMessage},
@@ -47,7 +47,7 @@ impl WalletConnectHandler {
         Personal Sign Request ->
         Signature to XMTP client
     */
-    pub async fn init(&mut self, xmtp_tx: oneshot::Sender<XMTP>) {
+    pub async fn init(&mut self, xmtp_tx: oneshot::Sender<XmtpHandler>) {
         let client_clone = self.client.clone();
 
         self.connect().await;
@@ -111,7 +111,7 @@ impl WalletConnectHandler {
         client_clone: Client,
         mut secret_opt: Option<EphemeralSecret>,
         mut relay_rx: Receiver<PublishedMessage>,
-        mut xmtp_tx: Option<oneshot::Sender<XMTP>>,
+        mut xmtp_tx: Option<oneshot::Sender<XmtpHandler>>,
     ) {
         let (signer_tx, mut signer_rx) = mpsc::channel::<(String, oneshot::Sender<Vec<u8>>)>(10);
         let (_, pairing_sym_key_hex) = self.parse_uri(&self.uri);
@@ -169,7 +169,7 @@ impl WalletConnectHandler {
                                     let token = cancelation_token.clone();
                                     std::thread::spawn(move || {
                                         println!("Initializing XMTP client on blocking thread...");
-                                        let xmtp = XMTP::new(Some(signer.clone()), None);
+                                        let xmtp = XmtpHandler::new(Some(signer.clone()), None);
                                         let _ = tx.send(xmtp);
 
                                         // after xmtp auth cancel wc tasks

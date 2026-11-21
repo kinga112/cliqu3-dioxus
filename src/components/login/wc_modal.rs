@@ -1,8 +1,7 @@
-use crate::app_state::APP_STATE;
-use crate::modules::walletconnect::walletconnect::WalletConnectHandler;
-use crate::states::user_states::AUTH_STATE;
-use crate::states::user_states::AuthState;
-use crate::states::user_states::USER;
+use crate::modules::xmtp::xmtp::XMTP_STATE;
+use crate::{
+    modules::walletconnect::walletconnect::WalletConnectHandler, state::app_state::AppState,
+};
 
 use dioxus::prelude::*;
 use rand::RngCore;
@@ -24,6 +23,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 
 #[component]
 pub fn WalletConnectModal(open: Signal<bool>) -> Element {
+    let mut app_state = use_context::<AppState>();
     let mut svg = use_signal(String::new);
     // let mut state = use_context::<Signal<AppState>>();
 
@@ -57,21 +57,26 @@ pub fn WalletConnectModal(open: Signal<bool>) -> Element {
                 let encoded = STANDARD.encode(svg_string.as_bytes());
                 svg.set(format!("data:image/svg+xml;base64,{encoded}"));
 
-                // Now the actual WalletConnect async flow
                 let mut wc = WalletConnectHandler::new(uri);
                 let (xmtp_tx, xmtp_rx) = oneshot::channel();
                 wc.init(xmtp_tx).await;
 
                 let xmtp = xmtp_rx.await.expect("failed to get xmtp in receiver");
-                let id = xmtp.client.inbox_id().expect("couldnt get xmtp inbox id");
-                println!("GOT XMTP INBOX ID: {id:?}");
+                // let id = xmtp.client.inbox_id().expect("couldnt get xmtp inbox id");
+                let address = xmtp
+                    .client
+                    .account_identifier()
+                    .expect("failed to get address");
+                // println!("GOT XMTP INBOX ID: {id:?}");
 
-                let mut app_state = APP_STATE.lock().await;
-                app_state.xmtp = Some(xmtp);
-                let login_result = app_state.login().await;
+                // let mut app_state = APP_STATE.lock().await;
+                // app_state.xmtp = Some(xmtp);
+                *XMTP_STATE.lock().await = Some(xmtp);
+                // let login_result = app_state.login().await;
+                let login_result = app_state.login(address).await;
                 // state.xmtp = Some(Arc::new(xmtp));
                 // state.write().xmtp = Some(Arc::new(xmtp));
-                *AUTH_STATE.write() = AuthState::Authenticated;
+                // *state.auth_state.write() = AuthState::Authenticated;
                 // USER.write().authorized = AuthState::Authenticated;
             });
         }

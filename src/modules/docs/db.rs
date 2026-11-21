@@ -39,6 +39,10 @@ use uuid::Uuid;
 // use iroh_docs::sync::
 // use base64::{engine::general_purpose, Engine};
 use iroh_live;
+use std::sync::RwLock;
+use std::sync::{Arc, LazyLock};
+
+pub static DB: LazyLock<RwLock<Option<Arc<ServerDocs>>>> = LazyLock::new(|| RwLock::new(None));
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -61,9 +65,7 @@ pub struct ServerMetadata {
     pub ticket: String,
     pub name: String,
     pub pic: String,
-    // pub creator: String,
     pub creator_address: String,
-    // pub creatorHash:
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
@@ -943,6 +945,7 @@ impl ServerDocs {
         }
 
         // let subscription = doc.subscribe().await.expect("subscription failed");
+        // let a = self.docs.su
         let mut subscription = doc.subscribe().await.unwrap();
 
         println!("after subscription in set_current_server");

@@ -6,10 +6,8 @@ use std::collections::HashMap;
 use xmtp::content::{Content, EncodedContent};
 
 use crate::{
-    app_state::APP_STATE,
     components::server::channel::message::content::BasicContent,
     modules::{docs::db::Server, walletconnect::crypto, xmtp::xmtp::Msg},
-    states::user_states::USER,
 };
 
 use aes_gcm::{

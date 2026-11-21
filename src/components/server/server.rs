@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     components::server::{channel::TextChannel, sidebar::SideBar},
     modules::docs::db::Server as ServerType,
-    states::server_states::{CURRENT_SERVER, CURRENT_TEXT_CHANNEL},
+    // states::server_states::{CURRENT_SERVER, CURRENT_TEXT_CHANNEL},
 };
 
 #[component]

@@ -4,86 +4,88 @@ use dioxus::prelude::*;
 use xmtp::content::{Content, ReactionAction};
 
 use crate::{
-    app_state::APP_STATE,
     components::server::channel::emojis::emoji_enum::Emoji,
-    modules::xmtp::xmtp::{Msg, TextChannel},
-    states::{
-        dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES},
-        global_states::{CURRENT_SCREEN, Screen},
-        server_states::{CURRENT_TEXT_CHANNEL, MESSAGES},
-        user_states::USER,
-    },
+    modules::xmtp::xmtp::{Msg, XMTP_STATE},
+    state::{app_state::AppState, data_types::server::TextChannelState},
 };
 
 #[component]
 pub fn EmojiElement(emoji: Emoji) -> Element {
-    let msg_id = use_context::<String>();
-    let channel;
-    let messages;
-    let mut message = Msg {
-        id: String::new(),
-        content: Content::Text(String::new()),
-        from: String::new(),
-        timestamp: 0,
-        reactions: HashMap::new(),
-    };
+    // let state = use_context::<NewAppState>();
+    // let server_state = use_context::<ServerState>();
+    // let channel_state = use_context::<TextChannelState>();
+    let message = use_context::<Msg>();
+    // let messages;
+    // let mut message = Msg {
+    //     id: String::new(),
+    //     content: Content::Text(String::new()),
+    //     from: String::new(),
+    //     timestamp: 0,
+    //     reactions: HashMap::new(),
+    // };
 
-    match *CURRENT_SCREEN.read() {
-        Screen::Server => {
-            channel = CURRENT_TEXT_CHANNEL
-                .read()
-                .clone()
-                .expect("text channel is none?");
-            messages = MESSAGES.read().clone();
-        }
-        Screen::DirectMessages => {
-            channel = CURRENT_DIRECT_MESSAGE.read().clone().expect("dm is none?");
-            messages = DM_MESSAGES.read().clone();
-        }
-        Screen::Settings => {
-            channel = CURRENT_TEXT_CHANNEL
-                .read()
-                .clone()
-                .expect("text channel is none?");
-            messages = MESSAGES.read().clone();
-        }
-    }
-    let id = channel.metadata.id;
-    for msg in messages {
-        if msg.id == msg_id {
-            message = msg;
-        }
-    }
+    // match *state.current_screen.read() {
+    //     Screen::Server => {
+    //         id = channel_state.metadata.read().id.clone();
+    //         messages = channel_state.messages.read().clone();
+    //     }
+    //     Screen::DirectMessages => {
+    //         id = CURRENT_DIRECT_MESSAGE
+    //             .read()
+    //             .clone()
+    //             .expect("dm is none?")
+    //             .metadata
+    //             .id;
+    //         messages = DM_MESSAGES.read().clone();
+    //     }
+    //     Screen::Settings => {
+    //         id = channel_state.metadata.read().id.clone();
+    //         messages = channel_state.messages.read().clone();
+    //     }
+    // }
+    // let id = channel.metadata.id;
+    // for msg in channel_state.messages.read().iter() {
+    //     if msg.id == msg_id {
+    //         message = msg.clone();
+    //     }
+    // }
 
     rsx! {
         button {
             class: "hover:bg-deep-purple-400 rounded-md",
-            onclick: move |_| on_click(emoji.clone(), id.clone(), message.clone()),
+            onclick: move |_| on_click(emoji.clone(), message.clone()),
+            // onclick: move |_| on_click(&emoji, &channel_state.metadata.read().id, &message),
             "{emoji.as_str()}"
         }
     }
 }
 
-async fn on_click(emoji: Emoji, id: String, msg: Msg) {
-    let app_state = APP_STATE.lock().await;
-    if msg.reactions.get(emoji.as_str()).is_some() {
-        let users = msg.reactions.get(emoji.as_str()).unwrap();
-        if !users.contains(&USER.read().inbox_id) {
+async fn on_click(emoji: Emoji, message: Msg) {
+    let channel_state = use_context::<TextChannelState>();
+    // let app_state = APP_STATE.lock().await;
+    let state = use_context::<AppState>();
+    let xmtp_opt = XMTP_STATE.lock().await;
+    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 4?");
+    if message.reactions.get(emoji.as_str()).is_some() {
+        let users = message.reactions.get(emoji.as_str()).unwrap();
+        if !users.contains(&state.user.read().inbox_id) {
             println!("DOES NOT CONTAIN, SENDING EMOJI");
-            app_state
-                .xmtp
-                .as_ref()
-                .expect("xmtp not initialized")
-                .send_reaction(&id, &msg.id, emoji.as_str(), ReactionAction::Added)
-                .await;
+            xmtp.send_reaction(
+                &channel_state.metadata.read().id,
+                &message.id,
+                emoji.as_str(),
+                ReactionAction::Added,
+            )
+            .await;
         }
     } else {
         println!("DOES NOT CONTAIN, SENDING EMOJI");
-        app_state
-            .xmtp
-            .as_ref()
-            .expect("xmtp not initialized")
-            .send_reaction(&id, &msg.id, emoji.as_str(), ReactionAction::Added)
-            .await;
+        xmtp.send_reaction(
+            &&channel_state.metadata.read().id,
+            &message.id,
+            emoji.as_str(),
+            ReactionAction::Added,
+        )
+        .await;
     }
 }

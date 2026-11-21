@@ -3,31 +3,49 @@ use iroh_live::rooms::RoomTicket;
 
 use crate::{
     components::server::sidebar::VoiceChannelUser,
-    modules::{docs::db::TextChannelMetaData, live::call::CallHandler},
-    states::server_states::{CURRENT_TEXT_CHANNEL, VOICE_CHANNELS},
+    modules::{
+        docs::db::{TextChannelMetaData, VoiceChannel},
+        live::call::CallHandler,
+    },
+    state::data_types::server::ServerState,
 };
 
 const VOLUME: Asset = asset!("/assets/icons/volume.svg");
 
 #[component]
-pub fn VoiceChannelButton(name: String) -> Element {
-    let voice_channels = VOICE_CHANNELS.read().clone();
-    let voice_channels_ui = voice_channels.into_iter().map(|(ticket, voice_channel)| {
-        let users = voice_channel
-            .active_users
-            .iter()
-            .map(|(public_key, display_name)| {
-                rsx! {VoiceChannelUser{public_key, display_name}}
-            });
-        rsx! {
-            div {
-                class: "flex flex-col",
-                {users}
-                // VoiceChannelUser{public_key: String::new(), display_name: "Test User 1"}
-                // VoiceChannelUser{public_key: String::new(), display_name: "Test User 2"}
-            }
-        }
-    });
+// pub fn VoiceChannelButton(name: String) -> Element {
+pub fn VoiceChannelButton(voice_channel: VoiceChannel) -> Element {
+    // let server_state = use_context::<ServerState>();
+    // let voice_channels = VOICE_CHANNELS.read().clone();
+    // let voice_channels_ui =
+    //     server_state
+    //         .voice_channels
+    //         .read()
+    //         .clone()
+    //         .into_iter()
+    //         .map(|(id, voice_channel)| {
+    //             let users = voice_channel
+    //                 .active_users
+    //                 .iter()
+    //                 .map(|(public_key, display_name)| {
+    //                     rsx! {VoiceChannelUser{public_key, display_name}}
+    //                 });
+    //             rsx! {
+    //                 div {
+    //                     class: "flex flex-col",
+    //                     {users}
+    //                     // VoiceChannelUser{public_key: String::new(), display_name: "Test User 1"}
+    //                     // VoiceChannelUser{public_key: String::new(), display_name: "Test User 2"}
+    //                 }
+    //             }
+    //         });
+    //
+    let users = voice_channel
+        .active_users
+        .iter()
+        .map(|(public_key, display_name)| {
+            rsx! {VoiceChannelUser{public_key, display_name}}
+        });
 
     rsx! {
         div {
@@ -35,7 +53,8 @@ pub fn VoiceChannelButton(name: String) -> Element {
             button {
                 class: "flex w-full h-8 place-items-center p-0.5 rounded-lg hover:bg-off-black-400",
                 onclick: move |_| {
-                    let name_clone = name.clone();
+                    // let name_clone = name.clone();
+                    let name_clone = voice_channel.name.clone();
                     spawn(async move {
                        join_call(name_clone).await;
                     });
@@ -51,12 +70,16 @@ pub fn VoiceChannelButton(name: String) -> Element {
                         }
                         p {
                             class: "truncate text-deep-purple-100",
-                            "{name}"
+                            "{voice_channel.name}"
                         }
                     }
                 }
             }
-            {voice_channels_ui}
+            // {voice_channels_ui}
+            div {
+                class: "flex flex-col",
+                {users}
+            }
             // div {
             //     class: "flex flex-col",
             //     // {users}
@@ -69,13 +92,14 @@ pub fn VoiceChannelButton(name: String) -> Element {
 
 // async fn join_call(name: String, ticket_str: String) {
 async fn join_call(name: String) {
+    let server_state = use_context::<ServerState>();
     println!("joining call");
     // let voice_channels = VOICE_CHANNELS.read();
     // let voice_channel_opt = voice_channels.get(&name.clone());
 
     let voice_channel_opt = {
-        let voice_channels = VOICE_CHANNELS.read();
-        voice_channels.get(&name).cloned() // Option<VoiceChannel> — owned, no borrow left
+        // let voice_channels = VOICE_CHANNELS.read();
+        server_state.voice_channels.peek().get(&name).cloned() // Option<VoiceChannel> — owned, no borrow left
     };
 
     let call_handler = CallHandler::new()
@@ -88,9 +112,12 @@ async fn join_call(name: String) {
                 .ticket
                 .parse()
                 .expect("failed to get room ticket from string");
-            match call_handler.join_room(name.clone(), ticket).await {
+            match call_handler
+                .join_room(name.clone(), ticket, server_state.voice_channels)
+                .await
+            {
                 Ok(()) => {
-                    CallHandler::add_call(name.clone(), voice_channel.ticket.clone());
+                    // CallHandler::add_call(name.clone(), voice_channel.ticket.clone());
                     println!("JOIN: succeeded");
                 }
                 Err(e) => {
@@ -98,9 +125,12 @@ async fn join_call(name: String) {
                 }
             }
         }
-        None => match call_handler.create_room(name.clone()).await {
+        None => match call_handler
+            .create_room(name.clone(), server_state.voice_channels)
+            .await
+        {
             Ok(ticket) => {
-                CallHandler::add_call(name.clone(), ticket);
+                // CallHandler::add_call(name.clone(), ticket);
                 println!("CREATE: succeeded");
             }
             Err(e) => {

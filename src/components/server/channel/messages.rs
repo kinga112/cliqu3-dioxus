@@ -1,35 +1,15 @@
-use dioxus::prelude::*;
-
 use crate::{
-    components::server::channel::{OutboxBanner, message::Message},
-    modules::xmtp::xmtp::TextChannel,
-    states::{
-        dm_states::DM_MESSAGES,
-        global_states::{CURRENT_SCREEN, Screen},
-        server_states::{MESSAGES, OUTBOX_MESSAGES},
-    },
+    components::server::channel::message::NewMessage, state::data_types::server::TextChannelState,
 };
+use dioxus::prelude::*;
 
 #[component]
 pub fn Messages() -> Element {
-    let padding_bottom = 36 * OUTBOX_MESSAGES.read().len() + 24;
-    let messages;
-    // if *CURRENT_SCREEN.read() == Screen::DirectMessages {
-    //     println!("USING DM MESSAGES");
-    //     messages = DM_MESSAGES.read();
-    // }
-    match *CURRENT_SCREEN.read() {
-        Screen::Server => {
-            messages = MESSAGES.read();
-        }
-        Screen::DirectMessages => {
-            messages = DM_MESSAGES.read();
-        }
-        Screen::Settings => {
-            messages = MESSAGES.read();
-        }
-    }
-
+    // use_context_provider(|| Signal::new(None::<String>));
+    let channel_state = use_context::<TextChannelState>();
+    // let fake_signal = use_signal(|| true);
+    let padding_bottom = 36 * channel_state.outbox_messages.read().len() + 24;
+    let messages = channel_state.messages.read();
     let rendered_messages = messages.iter().enumerate().map(|(i, msg)| {
         let previous_message_timestamp = if i > 0 && messages[i].from == messages[i - 1].from {
             Some(messages[i - 1].timestamp)
@@ -38,7 +18,12 @@ pub fn Messages() -> Element {
         };
 
         rsx! {
-            Message {
+            // Message {
+            //     key: "{msg.id}",
+            //     message: msg.clone(),
+            //     previous_message_timestamp: previous_message_timestamp,
+            // }
+            NewMessage {
                 key: "{msg.id}",
                 message: msg.clone(),
                 previous_message_timestamp: previous_message_timestamp,
@@ -52,12 +37,8 @@ pub fn Messages() -> Element {
             div {
                 class: "flex flex-col pt-4 w-full ",
                 style: "padding-bottom: {padding_bottom}px;",
-                // style: "padding-bottom: 52px;",
                 {rendered_messages}
             }
         }
-        // div {
-            // class: "h-3 shrink-0"
-        // }
     }
 }

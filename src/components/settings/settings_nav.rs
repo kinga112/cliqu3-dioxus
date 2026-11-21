@@ -1,12 +1,8 @@
 use dioxus::prelude::*;
 
 use crate::{
-    app_state::{self, APP_STATE},
-    components::settings::SettingsNavButton,
-    states::{
-        settings_states::SettingsContent,
-        user_states::{AUTH_STATE, AuthState},
-    },
+    components::settings::{SettingsNavButton, settings::SettingsContent},
+    state::app_state::AppState,
 };
 
 #[component]
@@ -33,14 +29,6 @@ pub fn SettingsNav() -> Element {
 }
 
 pub async fn logout() {
-    let mut app_state = APP_STATE.lock().await;
-    let result = app_state.logout();
-    match result {
-        Ok(_) => {
-            *AUTH_STATE.write() = AuthState::Unauthenticated;
-        }
-        Err(e) => {
-            println!("Error during logout: {:?}", e);
-        }
-    }
+    let mut app_state = use_context::<AppState>();
+    let logout_result = app_state.logout().await;
 }

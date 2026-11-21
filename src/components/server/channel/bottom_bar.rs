@@ -1,23 +1,10 @@
-use dioxus::prelude::*;
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
-use uuid::Uuid;
-use xmtp::content::Content;
-
 use crate::{
-    app_state::APP_STATE,
-    components::server::channel::{OutboxBanner, emojis::EmojiModal, outbox_banner::OutboxMessage},
-    modules::xmtp::{
-        // handler::XmtpCommand,
-        xmtp::{Msg, TextChannel},
-    },
-    states::{
-        server_states::{MESSAGES, OUTBOX_MESSAGES, OutboxMessageType, REPLY},
-        user_states::USER,
-    },
+    components::server::channel::OutboxBanner,
+    modules::xmtp::xmtp::XMTP_STATE,
+    state::data_types::server::{OutboxMessageType, TextChannelState},
 };
+use dioxus::prelude::*;
+use uuid::Uuid;
 
 const GIF: Asset = asset!("/assets/icons/gif.svg");
 const EMOJI: Asset = asset!("/assets/icons/emoji2.svg");
@@ -26,35 +13,29 @@ const CLOSE: Asset = asset!("/assets/icons/close.svg");
 
 #[component]
 pub fn BottomBar(id: String) -> Element {
-    // let text_channel = use_context::<TextChannel>();
+    let mut channel_state = use_context::<TextChannelState>();
     let mut text_input = use_signal(|| String::new());
-    // let text_input_context = use_context_provider(|| text_input);
     let mut open_emoji_modal = use_signal(|| false);
-    // let id = text_channel.metadata.id;
-    let show_reply_banner = REPLY.read().is_some();
 
     rsx! {
         div {
             class: "flex shrink-0 w-full justify-center z-20 pb-3",
             div {
-                // when no scroll bar h-4
-                // class: "relative h-[calc(58px)] w-full mx-3",
                 class: "relative h-full w-full mx-3",
                 div {
-                    // when no scroll bar: bottom-4
                     class: "flex w-full",
-                    if show_reply_banner {
+                    if let Some(reply) = channel_state.reply.read().as_ref() {
                         div {
                             class: "absolute z-50 -top-5 rounded-e-md rounded-tl-md p-1 bg-deep-purple-300",
                             div {
                                 class: "flex gap-3",
                                 p {
                                     class: "truncate max-w-96",
-                                    "Replying to: {REPLY.read().as_ref().unwrap().text.clone()}"
+                                    "Replying to: {reply.text}"
                                 }
                                 button {
                                     class: "hover:bg-red-700 rounded-full w-6 h-6",
-                                    onclick:  move |_| *REPLY.write() = None,
+                                    onclick:  move |_| *channel_state.reply.write() = None,
                                     img {
                                         src: CLOSE,
                                     }
@@ -127,6 +108,7 @@ pub fn BottomBar(id: String) -> Element {
 }
 
 async fn send_message(id: String, mut text_input: Signal<String>) {
+    let mut channel_state = use_context::<TextChannelState>();
     let text = text_input.read().clone();
     if text == "".to_string() {
         return;
@@ -137,52 +119,38 @@ async fn send_message(id: String, mut text_input: Signal<String>) {
         message_id: "".to_string(),
         message_text: text.clone(),
     };
-    OUTBOX_MESSAGES.write().push(outbox_message);
+    channel_state.outbox_messages.write().push(outbox_message);
     text_input.set("".to_string());
 
     spawn(async move {
-        let app_state = APP_STATE.lock().await;
-        if REPLY.read().is_none() {
-            let message_id = tokio::task::spawn_blocking(move || {
-                app_state
-                    .xmtp
-                    .as_ref()
-                    .expect("xmtp not initialized")
-                    .send_text(&id, text)
-                    .expect("failed to send text")
-            })
-            .await
-            .expect("failed send text");
-            println!("Outboxmessages: {:?}", OUTBOX_MESSAGES.peek());
-            for outbox_message in OUTBOX_MESSAGES.write().iter_mut() {
-                if *outbox_message.tmp_id == tmp_id {
-                    println!(
-                        "*
-                        *
-                        *
-                        Found the message with tmp id: {}
-                        *
-                        *",
-                        tmp_id
-                    );
-                    outbox_message.message_id = message_id.clone(); // Edits the item in place
-                }
+        let xmtp_opt = XMTP_STATE.lock().await;
+        let message_id;
+        match channel_state.reply.peek().as_ref() {
+            Some(reply) => {
+                println!("SENDNING A REPLY 1");
+                let reference = reply.reference.clone();
+                message_id = tokio::task::spawn_blocking(move || {
+                    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 6?");
+                    xmtp.send_text_reply(&id, text, reference)
+                        .expect("failed to send text")
+                })
+                .await
+                .expect("failed send text reply");
             }
-            println!("Outboxmessages: {:?}", OUTBOX_MESSAGES.peek());
-        } else {
-            println!("SENDNING A REPLY 1");
-            let reference = REPLY
-                .read()
-                .as_ref()
-                .expect("reply is none??")
-                .reference
-                .clone();
-            app_state
-                .xmtp
-                .as_ref()
-                .expect("xmtp not initialized")
-                .send_text_reply(&id, text, reference)
-                .await;
+            None => {
+                message_id = tokio::task::spawn_blocking(move || {
+                    let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 6?");
+                    xmtp.send_text(&id, text).expect("failed to send text")
+                })
+                .await
+                .expect("failed send text");
+            }
+        }
+        *channel_state.reply.write() = None;
+        for outbox_message in channel_state.outbox_messages.write().iter_mut() {
+            if *outbox_message.tmp_id == tmp_id {
+                outbox_message.message_id = message_id.clone();
+            }
         }
     });
 }

@@ -9,7 +9,7 @@ use xmtp::{
 /// Utility functions for Xmtp that do not require client calls
 ///
 
-// Get Msg type used in Cliqu3 UI
+// Convert Xmtp Message to Msg type used in Cliqu3 UI
 // (Reactions are HashMap, not a vec in Xmtp Message and removed other bloat)
 pub fn get_msg(message: Message) -> Result<Msg, String> {
     let msg: Msg;

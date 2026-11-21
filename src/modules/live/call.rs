@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use anyhow::Result;
 use dioxus::{
     core::{Runtime, RuntimeGuard},
-    signals::ReadableExt,
+    hooks::use_context,
+    signals::{ReadableExt, Signal, WritableExt},
 };
 use iroh::{Endpoint, endpoint::presets};
 use iroh_gossip::ALPN as GOSSIP_ALPN;
@@ -16,10 +17,7 @@ use iroh_live::{
     rooms::{Room, RoomEvent, RoomHandle, RoomTicket},
 };
 
-use crate::{
-    modules::docs::db::VoiceChannel,
-    states::{server_states::VOICE_CHANNELS, user_states::USER},
-};
+use crate::{modules::docs::db::VoiceChannel, state::app_state::AppState};
 
 pub struct CallHandler {
     live: Live,
@@ -30,6 +28,7 @@ pub struct CallHandler {
 
 impl CallHandler {
     pub async fn new() -> Result<Self> {
+        let state = use_context::<AppState>();
         let endpoint = Endpoint::builder(presets::N0)
             .alpns(vec![iroh_live::ALPN.to_owned(), GOSSIP_ALPN.to_owned()])
             .bind()
@@ -37,7 +36,8 @@ impl CallHandler {
 
         let live = Live::builder(endpoint).with_gossip().with_router().spawn();
         let audio = AudioBackend::default();
-        let display_name = USER
+        let display_name = state
+            .user
             .read()
             .profile
             .clone()
@@ -52,7 +52,11 @@ impl CallHandler {
         })
     }
 
-    pub async fn create_room(&self, voice_channel_name: String) -> anyhow::Result<String> {
+    pub async fn create_room(
+        &self,
+        voice_channel_name: String,
+        voice_channels_signal: Signal<HashMap<String, VoiceChannel>>,
+    ) -> anyhow::Result<String> {
         let endpoint = Endpoint::builder(presets::N0)
             .alpns(vec![iroh_live::ALPN.to_owned(), GOSSIP_ALPN.to_owned()])
             .bind()
@@ -104,6 +108,7 @@ impl CallHandler {
         });
 
         let name_clone = voice_channel_name.clone();
+        let ticket_clone = ticket.clone();
         dioxus::prelude::spawn(async move {
             while let Some(event) = rx.recv().await {
                 match event {
@@ -112,20 +117,22 @@ impl CallHandler {
                         display_name,
                     } => {
                         // MY_GLOBAL_SIGNAL.write().push(remote);
-                        // CallHandler::add_user_to_call(
-                        //     name_clone.clone(),
-                        //     ticket.to_string(),
-                        //     remote.to_string(),
-                        //     display_name.expect("failed to get display name"),
-                        // );
+                        CallHandler::add_user_to_call(
+                            name_clone.clone(),
+                            ticket.clone().to_string(),
+                            remote.to_string(),
+                            display_name.expect("failed to get display name"),
+                            voice_channels_signal,
+                        );
                     }
                     RoomEvent::PeerLeft { remote } => {
                         // MY_GLOBAL_SIGNAL.write().retain(|r| r != &remote);
-                        // CallHandler::remove_user_from_call(
-                        //     name_clone.clone(),
-                        //     ticket.to_string(),
-                        //     remote.to_string(),
-                        // );
+                        CallHandler::remove_user_from_call(
+                            name_clone.clone(),
+                            ticket.to_string(),
+                            remote.to_string(),
+                            voice_channels_signal,
+                        );
                     }
                     // ... other variants you care about in the UI
                     _ => {}
@@ -133,7 +140,7 @@ impl CallHandler {
             }
         });
 
-        Ok(ticket)
+        Ok(ticket_clone)
     }
 
     // pub async fn join_room(endpoint: Endpoint, ticket: RoomTicket) -> anyhow::Result<()> {
@@ -141,6 +148,7 @@ impl CallHandler {
         &self,
         voice_channel_name: String,
         ticket: RoomTicket,
+        voice_channels_signal: Signal<HashMap<String, VoiceChannel>>,
     ) -> anyhow::Result<()> {
         // let endpoint = Endpoint::bind(presets::N0)
         //     .await
@@ -208,6 +216,7 @@ impl CallHandler {
                             ticket.to_string(),
                             remote.to_string(),
                             display_name.expect("failed to get display name"),
+                            voice_channels_signal,
                         );
                     }
                     RoomEvent::PeerLeft { remote } => {
@@ -216,6 +225,7 @@ impl CallHandler {
                             name_clone.clone(),
                             ticket.to_string(),
                             remote.to_string(),
+                            voice_channels_signal,
                         );
                     }
                     // ... other variants you care about in the UI
@@ -227,17 +237,17 @@ impl CallHandler {
         Ok(())
     }
 
-    pub fn add_call(name: String, ticket: String) {
-        println!("Adding call!!");
-        let mut voice_channels = VOICE_CHANNELS.write();
-        // voice_channels.insert(ticket, HashMap::new());
-        let voice_channel = VoiceChannel {
-            name: name.clone(),
-            ticket,
-            active_users: HashMap::new(),
-        };
-        voice_channels.insert(name, voice_channel);
-    }
+    // pub fn add_call(name: String, ticket: String) {
+    //     println!("Adding call!!");
+    //     let mut voice_channels = VOICE_CHANNELS.write();
+    //     // voice_channels.insert(ticket, HashMap::new());
+    //     let voice_channel = VoiceChannel {
+    //         name: name.clone(),
+    //         ticket,
+    //         active_users: HashMap::new(),
+    //     };
+    //     voice_channels.insert(name, voice_channel);
+    // }
 
     // Display name will be users wallet address
     fn add_user_to_call(
@@ -245,22 +255,36 @@ impl CallHandler {
         ticket: String,
         user_public_key: String,
         user_display_name: String,
+        mut voice_channels_signal: Signal<HashMap<String, VoiceChannel>>,
     ) {
         println!("Adding user to call: {:?}", user_display_name);
-        let mut voice_channels = VOICE_CHANNELS.write();
-        if let Some(voice_channel) = voice_channels.get_mut(&name) {
+        // let mut voice_channels = voice_channels_signal.write();
+        let mut voice_channels_tmp = voice_channels_signal.peek().clone();
+        if let Some(voice_channel) = voice_channels_signal.peek().get(&name) {
             println!("ADDING TO CALL! voice channel: {:?}", voice_channel.name);
-            voice_channel
+            // voice_channel.insert(user_public_key, user_display_name);
+            let mut channel = voice_channel.clone();
+            channel
                 .active_users
                 .insert(user_public_key, user_display_name);
+            voice_channels_tmp.insert(channel.ticket.clone(), channel);
+            // voice_channel
+            //     .active_users
+            //     .insert(user_public_key, user_display_name);
             // voice_channel.insert(user_public_key, user_display_name);
         }
+        *voice_channels_signal.write() = voice_channels_tmp;
     }
 
-    fn remove_user_from_call(name: String, ticket: String, user_public_key: String) {
+    fn remove_user_from_call(
+        name: String,
+        ticket: String,
+        user_public_key: String,
+        mut voice_channels_signal: Signal<HashMap<String, VoiceChannel>>,
+    ) {
         println!("Removing user to call: {:?}", user_public_key);
-        let mut voice_channels = VOICE_CHANNELS.write();
-        if let Some(voice_channel) = voice_channels.get_mut(&name) {
+        // let mut voice_channels = voice_channels_signal.write();
+        if let Some(voice_channel) = voice_channels_signal.write().get_mut(&name) {
             voice_channel.active_users.remove(&user_public_key);
         }
     }

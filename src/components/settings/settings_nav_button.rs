@@ -1,13 +1,14 @@
 use dioxus::prelude::*;
 
-use crate::states::settings_states::{SETTINGS_CONTENT, SettingsContent};
+use crate::components::settings::settings::SettingsContent;
 
 const BUTTON_STYLE: &'static str = "h-10 w-full rounded-lg shrink";
 
 #[component]
 pub fn SettingsNavButton(content: SettingsContent) -> Element {
+    let mut settings_content_state = use_context::<Signal<SettingsContent>>();
     let mut active = false;
-    if *SETTINGS_CONTENT.read() == content {
+    if *settings_content_state.read() == content {
         active = true;
     }
 
@@ -25,7 +26,7 @@ pub fn SettingsNavButton(content: SettingsContent) -> Element {
         button {
             class: if !active {"{BUTTON_STYLE} hover:bg-off-black-400"},
             class: if active {"{BUTTON_STYLE} bg-deep-purple-300 cursor-default"},
-            onclick: move |_| *SETTINGS_CONTENT.write() = content.clone(),
+            onclick: move |_| *settings_content_state.write() = content.clone(),
             "{name}"
         }
     }

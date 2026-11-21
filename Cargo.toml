@@ -44,6 +44,8 @@ prost = "0.14.4"
 iroh-live = { git = "https://github.com/n0-computer/iroh-live" }
 reqwest = "0.13.3"
 bytes = "1.12.1"
+redb = "4.6.0"
+dioxus-desktop = "0.7.10"
 
 [features]
 default = ["desktop"]

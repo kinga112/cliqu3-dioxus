@@ -1,9 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::user::UserInfo,
-    states::user_states::{MemberProfile, USER},
-};
+use crate::{components::user::UserInfo, state::data_types::user::MemberProfile};
 
 #[component]
 pub fn DisplayName(profile: MemberProfile) -> Element {
@@ -22,10 +19,13 @@ pub fn DisplayName(profile: MemberProfile) -> Element {
                     "{profile.address}"
                 }
             }
+            // if *open_user_info.read() {
             div{
                 class: "absolute left-full top-0 ml-2",
-                UserInfo{profile: profile, open: open_user_info}
+                // UserInfo{profile: profile, open: open_user_info}
+                UserInfo{profile: profile, open: open_user_info, can_close: true}
             }
+            // }
         }
     }
 }

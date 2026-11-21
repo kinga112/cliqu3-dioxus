@@ -2,14 +2,19 @@
 // use crate::components::sidenav::profile_controls::ProfileControls;
 use crate::{
     components::{
-        sidenav::{ServerButton, options_menu::OptionsMenu},
+        sidenav::{
+            ServerButton,
+            options_menu::{CreateServerModal, OptionsMenu},
+        },
         user::ProfileControls,
     },
-    modules::docs::db::ServerMetadata,
-    states::{
-        global_states::{CURRENT_SCREEN, Screen},
-        server_states::SERVER_LIST,
-        user_states::USER,
+    modules::{
+        docs::db::{ServerMetadata, TextChannelMetaData},
+        xmtp::xmtp::TextChannel,
+    },
+    state::{
+        app_state::{AppState, Screen},
+        data_types::server::TextChannelState,
     },
 };
 use dioxus::prelude::*;
@@ -19,10 +24,23 @@ const OPTIONS: Asset = asset!("/assets/icons/options.svg");
 
 #[component]
 pub fn SideNav() -> Element {
+    let mut app_state = use_context::<AppState>();
+    let mut channel_state = use_context::<TextChannelState>();
     let mut open_options_menu = use_signal(|| false);
     let mut open_profile_controls = use_signal(|| false);
+    // let open_create_server_modal = use_signal(|| false);
 
-    let servers = SERVER_LIST
+    // let servers = SERVER_LIST
+    //     .read()
+    //     .clone()
+    //     .into_iter()
+    //     .rev()
+    //     .map(|metadata| {
+    //         rsx! {ServerButton { metadata: metadata }}
+    //     });
+
+    let servers = app_state
+        .servers
         .read()
         .clone()
         .into_iter()
@@ -31,7 +49,8 @@ pub fn SideNav() -> Element {
             rsx! {ServerButton { metadata: metadata }}
         });
 
-    let profile = USER.read().profile.clone();
+    // let profile = state.user.read().profile.clone();
+    // let profile = USER.read().profile.clone();
     // let profile_option = USER.read().profile.clone();
     // match profile_option {
     //     Some(profile) => {
@@ -57,7 +76,10 @@ pub fn SideNav() -> Element {
                         class: "flex flex-col gap-1.5",
                         button {
                             class: "flex flex-col w-12 h-12 p-2.5 bg-deep-purple-300 rounded-xl justify-center place-items-center duration-200 hover:scale-105 z-10 select-none",
-                            onclick: move |_| on_dm_click(),
+                            onclick: move |_| {
+                                *app_state.current_screen.write() = Screen::DirectMessages;
+                                *channel_state.metadata.write() = TextChannelMetaData {id: String::new(), name: String::new()}
+                            },
                             img {
                                 src: MESSAGE_BUBBLE,
                                 height: "35",
@@ -90,8 +112,8 @@ pub fn SideNav() -> Element {
                             img {
                                 class: "object-cover w-12 h-12 rounded-xl",
                                 // src: avatar,
-                                src: if profile.avatar.clone() != "" {
-                                    "{profile.avatar}"
+                                src: if app_state.user.read().profile.avatar != "".to_string() {
+                                    "{app_state.user.read().profile.avatar}"
                                 }else{
                                     "{avatar}"
                                 }
@@ -118,11 +140,4 @@ pub fn SideNav() -> Element {
             }
         }
     }
-}
-
-fn on_dm_click() {
-    let profile = USER.read().profile.clone();
-    // .expect("failed to get profile");
-    println!("Clicked DM: {:?}", profile.address);
-    *CURRENT_SCREEN.write() = Screen::DirectMessages;
 }

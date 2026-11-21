@@ -1,28 +1,12 @@
-use std::collections::HashMap;
-
+use crate::{components::user::UserInfo, state::data_types::server::TextChannelState};
 use dioxus::prelude::*;
-
-use crate::{
-    components::user::UserInfo,
-    modules::xmtp::xmtp::TextChannel,
-    states::{
-        server_states::{CURRENT_TEXT_CHANNEL, MEMBERS},
-        user_states::MemberProfile,
-    },
-};
 
 #[component]
 pub fn MembersList() -> Element {
-    // let text_channel = use_context::<TextChannel>();
-    // let text_channel = CURRENT_TEXT_CHANNEL
-    //     .peek()
-    //     .clone()
-    //     .expect("text channel is none?");
-
-    // let members = text_channel.members.clone();
+    let channel_state = use_context::<TextChannelState>();
 
     let default_avatar = "https://png.pngtree.com/thumb_back/fh260/background/20230727/pngtree-aesthetic-liquid-purple-background-image_12761619.jpg";
-    let members = MEMBERS.read().clone().into_iter().map(|(inbox_id, member)| {
+    let members = channel_state.members.read().clone().into_iter().map(|(inbox_id, member)| {
         let mut open_user_info = use_signal(|| false);
         let avatar = member.clone().avatar;
         rsx! {
@@ -47,7 +31,7 @@ pub fn MembersList() -> Element {
                 }
                 div{
                     class: "absolute right-44 top-0",
-                    UserInfo{profile: member, open: open_user_info}
+                    UserInfo{profile: member, open: open_user_info, can_close: true}
                 }
             }
         }
@@ -58,10 +42,6 @@ pub fn MembersList() -> Element {
             class: "flex flex-col z-10 w-48 bg-off-black-500 border-l-2 border-off-black-400 shrink-0 px-2 text-deep-purple-100",
             button {
                 class: "flex flex-row text-sm pt-2 select-none group pointer-events-none place-items-center select",
-                // img {
-                //     class: "pointer-events-auto",
-
-                // }
                 div {
                     class: "group-hover:underline pointer-events-auto",
                     "members"

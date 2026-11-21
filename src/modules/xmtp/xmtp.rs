@@ -1,10 +1,7 @@
 use crate::modules::docs::db::TextChannelMetaData;
 use crate::modules::walletconnect::signer::WalletConnectXmtpSigner;
 use crate::modules::xmtp::utilities;
-use crate::states::dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES};
-use crate::states::global_states::{CURRENT_SCREEN, Screen};
-use crate::states::server_states::{MESSAGES, OUTBOX_MESSAGES};
-use crate::states::user_states::{MemberProfile, USER};
+use crate::state::data_types::user::MemberProfile;
 use crate::{config, smart_contract};
 use aes_gcm::Aes128Gcm;
 use alloy::hex;
@@ -40,6 +37,9 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, Generate, Key, KeyInit},
 };
+use std::sync::LazyLock;
+use std::sync::RwLock;
+use tokio::sync::Mutex;
 
 // #[derive(Serialize, Deserialize)]
 #[derive(Clone)]
@@ -75,11 +75,13 @@ impl PartialEq for Msg {
 //     pub description: String,
 // }
 
-pub struct XMTP {
+pub static XMTP_STATE: LazyLock<Mutex<Option<XmtpHandler>>> = LazyLock::new(|| Mutex::new(None));
+
+pub struct XmtpHandler {
     pub client: Client,
 }
 
-impl XMTP {
+impl XmtpHandler {
     pub fn new(
         signer_opt: Option<Arc<WalletConnectXmtpSigner>>,
         address_opt: Option<String>,
@@ -155,7 +157,7 @@ impl XMTP {
     pub fn init_stream(
         &self,
         stream_tx: UnboundedSender<MessageEvent>,
-        cancelation_token: CancellationToken,
+        cancellation_token: CancellationToken,
     ) {
         println!(
             "*
@@ -189,7 +191,7 @@ impl XMTP {
             loop {
                 tokio::select! {
                     // Instantly aborts even if rx.recv() is waiting indefinitely
-                    _ = cancelation_token.cancelled() => {
+                    _ = cancellation_token.cancelled() => {
                         println!("Task cancelled gracefully!");
                         break;
                     }
@@ -344,20 +346,20 @@ impl XMTP {
         emoji: &str,
         action: ReactionAction,
     ) {
-        let user_inbox_id = USER.peek().inbox_id.clone();
-        self.apply_reaction(message_id, &user_inbox_id, emoji, action);
-        let convo = self
-            .client
-            .conversation(id)
-            .expect("failed to get convo")
-            .expect("convo doesnt exist with id");
-        println!("Sending Reaction!");
-        let e = emoji.to_string();
-        let msg_id = message_id.to_string();
-        let result =
-            tokio::task::spawn_blocking(move || convo.send_reaction(&msg_id, &e, action)).await;
-        let a = result.expect("failed 1").expect("failed 2");
-        println!("Sent Reaction!: {:?}", a);
+        // let user_inbox_id = USER.peek().inbox_id.clone();
+        // self.apply_reaction(message_id, &user_inbox_id, emoji, action);
+        // let convo = self
+        //     .client
+        //     .conversation(id)
+        //     .expect("failed to get convo")
+        //     .expect("convo doesnt exist with id");
+        // println!("Sending Reaction!");
+        // let e = emoji.to_string();
+        // let msg_id = message_id.to_string();
+        // let result =
+        //     tokio::task::spawn_blocking(move || convo.send_reaction(&msg_id, &e, action)).await;
+        // let a = result.expect("failed 1").expect("failed 2");
+        // println!("Sent Reaction!: {:?}", a);
     }
 
     fn apply_reaction(
@@ -367,56 +369,77 @@ impl XMTP {
         emoji: &str,
         action: ReactionAction,
     ) {
-        // let mut messages = MESSAGES.write();
-        let mut messages;
-        match *CURRENT_SCREEN.peek() {
-            Screen::Server => {
-                messages = MESSAGES.write();
-            }
-            Screen::DirectMessages => {
-                messages = DM_MESSAGES.write();
-            }
-            Screen::Settings => {
-                messages = MESSAGES.write();
-            }
-        }
-        if let Some(msg) = messages.iter_mut().find(|m| m.id == message_id) {
-            let mut updated = (*msg).clone();
-            let users = updated
-                .reactions
-                .entry(emoji.to_string())
-                .or_insert_with(Vec::new);
-            match action {
-                ReactionAction::Added => {
-                    if !users.contains(&sender_inbox_id.to_string()) {
-                        users.push(sender_inbox_id.to_string());
-                    }
-                }
-                ReactionAction::Removed => {
-                    users.retain(|u| u != sender_inbox_id);
-                }
-                ReactionAction::Unspecified => {}
-            }
-            if users.is_empty() {
-                updated.reactions.remove(emoji);
-            }
-            println!(
-                "Writing reaction new message to Messages signal: {:?}",
-                updated.reactions
-            );
-            *msg = updated;
-        }
+        // let mut messages;
+        // match *CURRENT_SCREEN.peek() {
+        //     Screen::Server => {
+        //         // messages = MESSAGES.write();
+        //     }
+        //     Screen::DirectMessages => {
+        //         messages = DM_MESSAGES.write();
+        //     }
+        //     Screen::Settings => {
+        //         // messages = MESSAGES.write();
+        //     }
+        // }
+        // if let Some(msg) = messages.iter_mut().find(|m| m.id == message_id) {
+        //     let mut updated = (*msg).clone();
+        //     let users = updated
+        //         .reactions
+        //         .entry(emoji.to_string())
+        //         .or_insert_with(Vec::new);
+        //     match action {
+        //         ReactionAction::Added => {
+        //             if !users.contains(&sender_inbox_id.to_string()) {
+        //                 users.push(sender_inbox_id.to_string());
+        //             }
+        //         }
+        //         ReactionAction::Removed => {
+        //             users.retain(|u| u != sender_inbox_id);
+        //         }
+        //         ReactionAction::Unspecified => {}
+        //     }
+        //     if users.is_empty() {
+        //         updated.reactions.remove(emoji);
+        //     }
+        //     println!(
+        //         "Writing reaction new message to Messages signal: {:?}",
+        //         updated.reactions
+        //     );
+        //     *msg = updated;
+        // }
     }
 
-    pub async fn send_text_reply(&self, id: &str, text: String, reference: String) {
+    pub fn send_text_reply(
+        &self,
+        id: &str,
+        text: String,
+        reference: String,
+    ) -> Result<String, String> {
         println!("SENDNING A REPLY 2");
         let convo = self
             .client
             .conversation(id)
             .expect("failed to get convo")
             .expect("convo doesnt exist with id");
-        let result =
-            tokio::task::spawn_blocking(move || convo.send_text_reply(&reference, &text)).await;
+
+        let message_id = convo
+            .send_text_reply_optimistic(&reference, &text)
+            .expect("failed to send???");
+        convo.publish_messages().expect("failed to publish message");
+        println!(
+            "MESSAGE ID OF SENT MESSAGE? *
+            *
+            *
+            {:?}
+            *
+            *
+            *",
+            message_id
+        );
+        Ok(message_id)
+
+        // let result =
+        // tokio::task::spawn_blocking(move || convo.send_text_reply(&reference, &text)).await;
     }
 
     // pub async fn send_invite(&self, id: &str, metadata_json: String) {
