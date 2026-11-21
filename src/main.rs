@@ -3,6 +3,8 @@ use crate::state::data_types::server::{ServerState, TextChannelState};
 use crate::state::data_types::user::AuthState;
 use crate::views::{Home, Login, Splash};
 use dioxus::prelude::*;
+use dioxus_desktop::wry::dpi::Size;
+use dioxus_desktop::{Config, LogicalSize, WindowBuilder};
 
 mod components;
 mod config;
@@ -14,7 +16,18 @@ mod views;
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
-    dioxus::launch(App);
+    // dioxus::launch(App);
+    let size = LogicalSize::new(1200.00, 600.00);
+    let min_size = Size::Logical(size);
+    dioxus::LaunchBuilder::new()
+        .with_cfg(
+            Config::default().with_menu(None).with_window(
+                WindowBuilder::new()
+                    .with_title("cliqu3")
+                    .with_min_inner_size(min_size),
+            ),
+        )
+        .launch(App);
 }
 
 #[component]
