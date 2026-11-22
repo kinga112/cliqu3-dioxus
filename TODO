@@ -29,6 +29,8 @@
     -> Sometimes handle xmtp stream events function doesnt start?
 37. Change DB to Docs or DocStore?
 38. Get voice calls working properly
+39. Get all *Most* content types working for messages (Attachments, Markdown, etc)
+40. Fix reactions
 
 
 

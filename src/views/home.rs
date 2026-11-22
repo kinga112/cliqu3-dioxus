@@ -89,52 +89,6 @@ pub fn Home() -> Element {
 
     use_effect(move || {
         use_future(move || async move {
-            // let mut app_state = use_context::<AppState>();
-            // let mut server_state = use_context::<ServerState>();
-            // let mut channel_state = use_context::<TextChannelState>();
-            let saved_state_handler = SAVED_STATE_HANDLER
-                .read()
-                .expect("state handler doesnt exist?")
-                .clone()
-                .expect("failed to read state handler");
-            match saved_state_handler.get_state() {
-                Ok(saved_state) => {
-                    let db = DB
-                        .read()
-                        .expect("failed to read DB")
-                        .clone()
-                        .expect("failed to get db");
-                    if saved_state.last_server != "".to_string() {
-                        // let id = saved_state.last_server;
-                        let server = db
-                            .get_server(&saved_state.last_server)
-                            .await
-                            .expect("failed to get server");
-                        println!("SERVER NAME: {:?}", server.metadata.name);
-                        let xmtp_opt = XMTP_STATE.lock().await;
-                        let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here? 10");
-                        let text_channel = xmtp
-                            .get_conversation(&saved_state.last_text_channel)
-                            .await
-                            .expect("failed to get text channel");
-
-                        fetch_profiles();
-                        *channel_state.messages.write() = text_channel.messages.clone();
-                        *channel_state.members.write() = text_channel.members.clone();
-                        *channel_state.metadata.write() = text_channel.metadata.clone();
-                        *server_state.text_channels.write() = server.text_channels.clone();
-                        *server_state.voice_channels.write() = server.voice_channels.clone();
-                        *server_state.metadata.write() = server.metadata;
-                    }
-                    *app_state.current_screen.write() = saved_state.last_screen;
-                }
-                Err(e) => {}
-            }
-        });
-    });
-
-    use_effect(move || {
-        use_future(move || async move {
             loop {
                 let mut last_tick = Instant::now();
                 let interval = Duration::from_secs(2);

@@ -33,17 +33,24 @@ pub fn Splash() -> Element {
                     user.audio = saved_state.user_config.audio;
                     user.video = saved_state.user_config.video;
                     user.silence = saved_state.user_config.silence;
-                    let db = DB
-                        .read()
-                        .expect("failed to read DB")
-                        .clone()
-                        .expect("failed to get db");
-                    if saved_state.last_server != "".to_string() {
+
+                    if !saved_state.last_server.is_empty() {
+                        let db = DB
+                            .read()
+                            .expect("failed to read DB")
+                            .clone()
+                            .expect("failed to get db");
                         let server = db
                             .get_server(&saved_state.last_server)
                             .await
                             .expect("failed to get server");
                         println!("SERVER NAME: {:?}", server.metadata.name);
+                        *server_state.text_channels.write() = server.text_channels.clone();
+                        *server_state.voice_channels.write() = server.voice_channels.clone();
+                        *server_state.metadata.write() = server.metadata;
+                    }
+
+                    if !saved_state.last_text_channel.is_empty() {
                         let xmtp_opt = XMTP_STATE.lock().await;
                         let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here? 10");
                         let text_channel = xmtp
@@ -55,10 +62,8 @@ pub fn Splash() -> Element {
                         *channel_state.messages.write() = text_channel.messages.clone();
                         *channel_state.members.write() = text_channel.members.clone();
                         *channel_state.metadata.write() = text_channel.metadata.clone();
-                        *server_state.text_channels.write() = server.text_channels.clone();
-                        *server_state.voice_channels.write() = server.voice_channels.clone();
-                        *server_state.metadata.write() = server.metadata;
                     }
+
                     *app_state.current_screen.write() = saved_state.last_screen;
                     *app_state.user.write() = user;
                     *app_state.auth_state.write() = AuthState::Authenticated;
