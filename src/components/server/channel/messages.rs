@@ -1,5 +1,5 @@
 use crate::{
-    components::server::channel::message::NewMessage, state::data_types::server::TextChannelState,
+    components::server::channel::message::Message, state::data_types::server::TextChannelState,
 };
 use dioxus::prelude::*;
 
@@ -18,12 +18,7 @@ pub fn Messages() -> Element {
         };
 
         rsx! {
-            // Message {
-            //     key: "{msg.id}",
-            //     message: msg.clone(),
-            //     previous_message_timestamp: previous_message_timestamp,
-            // }
-            NewMessage {
+            Message {
                 key: "{msg.id}",
                 message: msg.clone(),
                 previous_message_timestamp: previous_message_timestamp,

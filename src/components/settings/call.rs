@@ -6,46 +6,47 @@ use iroh_live::rooms::RoomTicket;
 use xmtp::content::Content;
 
 use crate::{
-    app_state::APP_STATE,
     modules::live::{self, call::CallHandler},
-    states::{
-        dm_states::{CURRENT_DIRECT_MESSAGE, DM_MESSAGES},
-        server_states::VOICE_CHANNELS,
-    },
+    state::data_types::server::ServerState,
 };
 
 #[component]
 pub fn Call() -> Element {
+    let server_state = use_context::<ServerState>();
     let mut ticket_str = use_signal(|| String::new());
-
-    let voice_channels = VOICE_CHANNELS.read().clone();
     // messages.iter().enumerate().map(|(i, msg)| {
 
-    let voice_channels_ui = voice_channels.into_iter().map(|(ticket, voice_channel)| {
-        // let users = voice_channel.into_iter().map(|(public_key, display_name)| {
-        let users = voice_channel
-            .active_users
-            .iter()
-            .map(|(public_key, display_name)| {
+    let voice_channels_ui =
+        server_state
+            .voice_channels
+            .read()
+            .clone()
+            .into_iter()
+            .map(|(ticket, voice_channel)| {
+                // let users = voice_channel.into_iter().map(|(public_key, display_name)| {
+                let users = voice_channel
+                    .active_users
+                    .iter()
+                    .map(|(public_key, display_name)| {
+                        rsx! {
+                            div {
+                                "DISPLAY NAME: {display_name}"
+                            }
+                        }
+                    });
                 rsx! {
-                    div {
-                        "DISPLAY NAME: {display_name}"
+                    div{
+                        class: "flex flex-col bg-orange-500",
+                        div {
+                            "TICKET: {ticket}"
+                        }
+                        div {
+                            class: "flex flex-col bg-blue-300",
+                            {users}
+                        }
                     }
                 }
             });
-        rsx! {
-            div{
-                class: "flex flex-col bg-orange-500",
-                div {
-                    "TICKET: {ticket}"
-                }
-                div {
-                    class: "flex flex-col bg-blue-300",
-                    {users}
-                }
-            }
-        }
-    });
 
     rsx! {
         div{

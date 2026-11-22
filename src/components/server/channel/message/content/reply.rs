@@ -4,7 +4,6 @@ use dioxus::prelude::*;
 use xmtp::content::Content;
 
 use crate::{
-    components::server::channel::message::content::BasicContent,
     modules::xmtp::{
         utilities,
         xmtp::{Msg, XMTP_STATE},
@@ -118,7 +117,5 @@ pub fn ReplyContent(
                 }
             }
         }
-        // BasicContent{"{content}"}
-        // TextContent{text}
     }
 }

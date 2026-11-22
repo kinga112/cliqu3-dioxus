@@ -2,17 +2,15 @@ use alloy::hex;
 use base64::prelude::*;
 use dioxus::prelude::*;
 use prost::Message;
-use std::collections::HashMap;
-use xmtp::content::{Content, EncodedContent};
+use xmtp::content::EncodedContent;
 
 use crate::{
-    components::server::channel::message::content::BasicContent,
-    modules::{docs::db::Server, walletconnect::crypto, xmtp::xmtp::Msg},
+    components::server::channel::message::content::GenericContent, modules::docs::db::Server,
 };
 
 use aes_gcm::{
     Aes256Gcm, Nonce,
-    aead::{Aead, AeadCore, Generate, Key, KeyInit},
+    aead::{Aead, Key, KeyInit},
 };
 
 #[derive(Clone, PartialEq)]
@@ -59,13 +57,13 @@ pub fn InviteContent(raw: Vec<u8>) -> Element {
 
     match server_state.read().clone() {
         InviteState::Loading => rsx! {
-            BasicContent { "decrypting invite..." }
+            GenericContent { "decrypting invite..." }
         },
         InviteState::Failed => rsx! {
-            BasicContent { "failed to decrypt Cliqu3 invite" }
+            GenericContent { "failed to decrypt Cliqu3 invite" }
         },
         InviteState::Ready(server) => rsx! {
-            BasicContent {
+            GenericContent {
                 div {
                     class: "flex justify-between items-center bg-off-black-400 rounded-lg p-2",
                     div {

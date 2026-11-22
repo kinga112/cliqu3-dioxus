@@ -1,9 +1,6 @@
 mod message;
 pub use message::Message;
 
-mod new_message;
-pub use new_message::NewMessage;
-
 mod display_name;
 pub use display_name::DisplayName;
 
