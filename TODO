@@ -27,6 +27,8 @@
 33. Can VoiceChannels be a HashMap of signals? Instead of a signal of a hashmap?
 35. Sometimes xmtp stream doesnt initialize?
     -> Sometimes handle xmtp stream events function doesnt start?
+    -> Sluggish when computer running low on battery? 8% + alt tab stopped stream?
+        -> If stream becomes sluggish, other issues have arised. I need to document other crash causes.
 37. Change DB to Docs or DocStore?
 38. Get voice calls working properly
 39. Get all *Most* content types working for messages (Attachments, Markdown, etc)

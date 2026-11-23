@@ -6,7 +6,7 @@ use crate::components::server::channel::emojis::{EmojiElement, emoji_enum::Emoji
 #[component]
 // pub fn EmojiModal(open: Signal<bool>, x_pos: String, y_pos: String) -> Element {
 // pub fn EmojiModal(on_close: EventHandler<()>) -> Element {
-pub fn EmojiModal(open: Signal<bool>) -> Element {
+pub fn EmojiModal(open: Signal<bool>, display_currently_selected_message: Signal<bool>) -> Element {
     // trying memoization here
     let emoji_list = use_memo(|| {
         Emoji::iter()
@@ -37,6 +37,7 @@ pub fn EmojiModal(open: Signal<bool>) -> Element {
                             let inside = x >= mx && x <= mx + mw && y >= my && y <= my + mh;
                             if !inside {
                                 open.set(false);
+                                display_currently_selected_message.set(false);
                                 break;
                             }
                         } else {

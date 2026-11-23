@@ -26,9 +26,9 @@ use crate::{
 /// Close app event listener also here
 #[component]
 pub fn Home() -> Element {
-    let mut app_state = use_context::<AppState>();
-    let mut server_state = use_context::<ServerState>();
-    let mut channel_state = use_context::<TextChannelState>();
+    let app_state = use_context::<AppState>();
+    let server_state = use_context::<ServerState>();
+    let channel_state = use_context::<TextChannelState>();
 
     use_wry_event_handler(move |event, _| {
         if let Event::WindowEvent {

@@ -11,81 +11,49 @@ use crate::{
 
 #[component]
 pub fn EmojiElement(emoji: Emoji) -> Element {
-    // let state = use_context::<NewAppState>();
-    // let server_state = use_context::<ServerState>();
-    // let channel_state = use_context::<TextChannelState>();
-    let message = use_context::<Msg>();
-    // let messages;
-    // let mut message = Msg {
-    //     id: String::new(),
-    //     content: Content::Text(String::new()),
-    //     from: String::new(),
-    //     timestamp: 0,
-    //     reactions: HashMap::new(),
-    // };
-
-    // match *state.current_screen.read() {
-    //     Screen::Server => {
-    //         id = channel_state.metadata.read().id.clone();
-    //         messages = channel_state.messages.read().clone();
-    //     }
-    //     Screen::DirectMessages => {
-    //         id = CURRENT_DIRECT_MESSAGE
-    //             .read()
-    //             .clone()
-    //             .expect("dm is none?")
-    //             .metadata
-    //             .id;
-    //         messages = DM_MESSAGES.read().clone();
-    //     }
-    //     Screen::Settings => {
-    //         id = channel_state.metadata.read().id.clone();
-    //         messages = channel_state.messages.read().clone();
-    //     }
-    // }
-    // let id = channel.metadata.id;
-    // for msg in channel_state.messages.read().iter() {
-    //     if msg.id == msg_id {
-    //         message = msg.clone();
-    //     }
-    // }
+    // let message = use_context::<Msg>();
 
     rsx! {
         button {
             class: "hover:bg-deep-purple-400 rounded-md",
-            onclick: move |_| on_click(emoji.clone(), message.clone()),
-            // onclick: move |_| on_click(&emoji, &channel_state.metadata.read().id, &message),
+            // onclick: move |_| on_click(emoji.clone(), message.clone()),
+            onclick: move |_| on_click(emoji.clone()),
             "{emoji.as_str()}"
         }
     }
 }
 
-async fn on_click(emoji: Emoji, message: Msg) {
+// async fn on_click(emoji: Emoji, message: Msg) {
+async fn on_click(emoji: Emoji) {
+    let app_state = use_context::<AppState>();
     let channel_state = use_context::<TextChannelState>();
-    // let app_state = APP_STATE.lock().await;
-    let state = use_context::<AppState>();
+    let message = use_context::<Msg>();
+
     let xmtp_opt = XMTP_STATE.lock().await;
     let xmtp = xmtp_opt.as_ref().expect("xmtp is none as option here 4?");
-    if message.reactions.get(emoji.as_str()).is_some() {
-        let users = message.reactions.get(emoji.as_str()).unwrap();
-        if !users.contains(&state.user.read().inbox_id) {
+
+    match message.reactions.get(emoji.as_str()) {
+        Some(users) => {
+            if !users.contains(&app_state.user.read().inbox_id) {
+                println!("DOES NOT CONTAIN, SENDING EMOJI");
+                xmtp.send_reaction(
+                    &channel_state.metadata.read().id,
+                    &message.id,
+                    emoji.as_str(),
+                    ReactionAction::Added,
+                )
+                .await;
+            }
+        }
+        None => {
             println!("DOES NOT CONTAIN, SENDING EMOJI");
             xmtp.send_reaction(
-                &channel_state.metadata.read().id,
+                &&channel_state.metadata.read().id,
                 &message.id,
                 emoji.as_str(),
                 ReactionAction::Added,
             )
             .await;
         }
-    } else {
-        println!("DOES NOT CONTAIN, SENDING EMOJI");
-        xmtp.send_reaction(
-            &&channel_state.metadata.read().id,
-            &message.id,
-            emoji.as_str(),
-            ReactionAction::Added,
-        )
-        .await;
     }
 }

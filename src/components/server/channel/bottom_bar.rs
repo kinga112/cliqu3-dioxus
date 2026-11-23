@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     components::server::channel::OutboxBanner,
     modules::xmtp::xmtp::XMTP_STATE,
@@ -15,6 +17,7 @@ const CLOSE: Asset = asset!("/assets/icons/close.svg");
 pub fn BottomBar(id: String) -> Element {
     let mut channel_state = use_context::<TextChannelState>();
     let mut text_input = use_signal(|| String::new());
+    let mut input_ref = use_signal(|| None::<Rc<MountedData>>);
     let mut open_emoji_modal = use_signal(|| false);
 
     rsx! {
@@ -44,6 +47,18 @@ pub fn BottomBar(id: String) -> Element {
                         }
                     }
                     textarea {
+                        // focus text box on mount
+                        onmounted: move |e| async move {
+                            let data = e.data();
+                            let _ = data.set_focus(true).await;
+                            input_ref.set(Some(data));
+                        },
+                        // refocus whenever focus is lost
+                        onblur: move |_| async move {
+                            if let Some(data) = input_ref() {
+                                let _ = data.set_focus(true).await;
+                            }
+                        },
                         class: "z-0 w-full bg-off-black-600 rounded-lg px-2 py-4 focus:outline-none pr-56 resize-none",
                         // placeholder: "Send a message to #{text_channel.metadata.name}",
                         placeholder: "Send a message...",

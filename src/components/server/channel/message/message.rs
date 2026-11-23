@@ -14,6 +14,9 @@ use crate::{
 #[component]
 pub fn Message(message: Msg, previous_message_timestamp: Option<i64>) -> Element {
     use_context_provider(|| message.clone());
+    // display_currently_selected_message is passed to interactions and emoji modal
+    // to continue to display the selected message when the emoji modal is open
+    let display_currently_selected_message = use_signal(|| false);
 
     let mut within_five = false;
     if previous_message_timestamp.is_some() {
@@ -105,9 +108,10 @@ pub fn Message(message: Msg, previous_message_timestamp: Option<i64>) -> Element
 
     rsx! {
         div {
-            class: "flex-col w-full place-items-start relative p-1 hover:bg-off-black-300 gap-2 group rounded text-wrap break-words whitespace-pre-wrap",
+            class: "flex-col w-full place-items-start relative p-1 gap-2 group rounded text-wrap break-words whitespace-pre-wrap",
+            class: if *display_currently_selected_message.read(){"bg-off-black-300"} else {"hover:bg-off-black-300"},
             {content}
-            Interactions{}
+            Interactions{display_currently_selected_message}
         }
     }
 }
